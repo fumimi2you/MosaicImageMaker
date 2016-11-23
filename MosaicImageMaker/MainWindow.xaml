@@ -1,0 +1,43 @@
+﻿<Window x:Name="mainWindow" x:Class="WpfAppSample.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="WpfAppSample" Background="Black">
+    <Window.CommandBindings>
+        <CommandBinding 
+            Command="ApplicationCommands.Open" 
+            Executed="OpenCommand_Executed" />
+        <CommandBinding 
+            Command="ApplicationCommands.SaveAs" 
+            Executed="SaveAsCommand_Executed" />
+        <CommandBinding 
+            Command="ApplicationCommands.Close" 
+            Executed="CloseCommand_Executed" />
+    </Window.CommandBindings>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+
+        <Menu x:Name="mainMenu" Grid.Column="0" Grid.Row="0">
+            <MenuItem x:Name="fileMenuItem" Header="ファイル(_F)">
+                <MenuItem x:Name="openMenuItem" Header="開く(_O)" 
+                    Command="ApplicationCommands.Open" />
+                <MenuItem x:Name="saveAsMenuItem" Header="名前を付けて保存(_A)" 
+                    Command="ApplicationCommands.SaveAs" />
+                <Separator />
+                <MenuItem x:Name="exitMenuItem" Header="終了(_X)" 
+                    Command="ApplicationCommands.Close"
+                    InputGestureText="Alt+F4" />
+            </MenuItem>
+        </Menu>
+        <ScrollViewer x:Name="scrollViewer" Grid.Column="0" Grid.Row="1"
+            VerticalScrollBarVisibility="Disabled">
+            <Image x:Name="image" Stretch="Uniform"
+                RenderOptions.BitmapScalingMode="HighQuality" />
+        </ScrollViewer>
+    </Grid>
+</Window>
