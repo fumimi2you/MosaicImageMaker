@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
-using Microsoft.Win32;  // OpenFileDialog, SaveFileDialog
 using System.IO;        // FileStream
 using System.Drawing;
 
@@ -28,6 +27,13 @@ namespace WpfAppSample
         public static double SQR(double d ) { return d*d; }
     }
 
+    public class ImgPath
+    {
+        public string[] asSrcImg;
+        public string sSrcDir;
+        public string sTgtImg;
+        public string sDstImg;
+    }
 
     public class ImageLet
     {
@@ -44,27 +50,32 @@ namespace WpfAppSample
     }
 
 
+    // 通知内容
+    public class ProgressInfo
+    {
+        public ProgressInfo(int value, string message)
+        {
+            Value = value;
+            Message = message;
+        }
+
+        public int Value { get; private set; }
+        public string Message { get; private set; }
+    }
+
     /// <summary>
     /// MainWindow.xaml の相互作用ロジック
     /// </summary>
     public partial class MainWindow : Window
     {
+        ImgPath m_path;
 
         public MainWindow()
         {
             InitializeComponent();
         }
 
-        // メニュー - 終了
-        private void CloseCommand_Executed(
-            object sender, ExecutedRoutedEventArgs e)
-        {
-            this.Close();
-        }
-
-        // メニュー - 開く
-        private void OpenCommand_Executed(
-            object sender, ExecutedRoutedEventArgs e)
+        private void SetImgDir_Click(object sender, RoutedEventArgs e)
         {
             var Dialog = new CommonOpenFileDialog();
             // フォルダーを開く設定に
@@ -73,27 +84,53 @@ namespace WpfAppSample
             Dialog.EnsureReadOnly = false;
             Dialog.AllowNonFileSystemItems = false;
             // パス指定
-//            Dialog.DefaultDirectory = Application.StartupPath;
+            //            Dialog.DefaultDirectory = Application.StartupPath;
             // 開く
             var Result = Dialog.ShowDialog();
             // もし開かれているなら
             if (Result == CommonFileDialogResult.Ok)
             {
-                //"C:\test"以下のファイルをすべて取得する
-                //ワイルドカード"*"は、すべてのファイルを意味する
-                string[] aFile = System.IO.Directory.GetFiles(
-                    Dialog.FileName, "*.jpg", System.IO.SearchOption.TopDirectoryOnly);
+                m_path = new ImgPath();
 
+                m_path.asSrcImg = System.IO.Directory.GetFiles(
+                Dialog.FileName, "*.jpg", System.IO.SearchOption.TopDirectoryOnly);
+                m_path.sSrcDir = Path.GetDirectoryName(m_path.asSrcImg[0]);
+                m_path.sTgtImg = m_path.asSrcImg[0];
+                m_path.sDstImg = m_path.sSrcDir + "\\rt\\ret" + Path.GetFileName(m_path.sTgtImg);
+
+
+                TextBox1.Text = m_path.sSrcDir;
+                TextBlock1.Text = m_path.sTgtImg;
+                TextBlock2.Text = m_path.sDstImg;
+
+                progressBar1.Minimum = 0;
+                progressBar1.Maximum = m_path.asSrcImg.Length;
+                progressBar1.Value = 0;
+            }
+
+        }
+
+        private async void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            await Do(m_path);
+        }
+
+
+
+        public async Task<int> Do( ImgPath path )
+        {
+            Func<int> Job = () =>
+            {
                 //  LetImgの配列を構築
-                List<ImageLet> aImgLet = CommonUtils.MakeImageLets(aFile);
+                List<ImageLet> aImgLet = CommonUtils.MakeImageLets(path.asSrcImg);
 
 
                 //  ターゲット画像の読み込み
-                Image imgTg = Image.FromFile(aFile[0]);
+                Image imgTg = Image.FromFile(path.sTgtImg);
                 Bitmap bmTg = new Bitmap(imgTg);
 
                 //  出力先の構築(取り敢えずオリジナル画像をリサイズして突っ込む)
-                int iCelL = (int)Math.Sqrt(aImgLet.Count/2);
+                int iCelL = (int)Math.Sqrt(aImgLet.Count / 2);
                 int iCelW = 0;
                 int iCelH = 0;
                 if (imgTg.Width > imgTg.Height)
@@ -111,7 +148,6 @@ namespace WpfAppSample
                 //  ターゲット画像Celの配列作成
                 List<ImageCel> aImgCel = CommonUtils.MakeImageCels(imgTg, iCelW, iCelH);
 
-
                 //  モザイク処理
                 foreach (ImageCel imgCel in aImgCel)
                 {
@@ -121,7 +157,7 @@ namespace WpfAppSample
                     ImageLet imgLet = CommonUtils.SelectImageLet(imgCel.col, aImgLet);
 
                     for (int dy = 0; dy < DEF.LET_D; dy++)
-//                    Parallel.For( 0, DEF.LET_D, dy =>
+                    //                    Parallel.For( 0, DEF.LET_D, dy =>
                     {
                         int y = cy * DEF.LET_D + dy;
 
@@ -132,48 +168,31 @@ namespace WpfAppSample
                             //  値の取得
                             Color colMid = CommonUtils.ColorBlend(imgLet.bmData.GetPixel(dx, dy), 9, imgCel.col, 1);
 
-                            bmOut.SetPixel(x, y, CommonUtils.ColorBlend(colMid, 9, bmOut.GetPixel(x,y), 1));
+                            bmOut.SetPixel(x, y, CommonUtils.ColorBlend(colMid, 9, bmOut.GetPixel(x, y), 1));
                         }
                     }
                 }
 
                 //  ファイルを出力して開く
-                string stOutput = Path.GetDirectoryName(aFile[0]) + "\\rt\\ret" + Path.GetFileName(aFile[0]);
-                bmOut.Save(stOutput, System.Drawing.Imaging.ImageFormat.Jpeg);
-                System.Diagnostics.Process.Start( stOutput);
+                bmOut.Save(path.sDstImg, System.Drawing.Imaging.ImageFormat.Jpeg);
+                System.Diagnostics.Process.Start(path.sDstImg);
 
                 //  お片付け
                 imgTg.Dispose();
                 bmTg.Dispose();
                 bmOut.Dispose();
-            }
-        }
 
-        // メニュー - 保存
-        private void SaveAsCommand_Executed(
-            object sender, ExecutedRoutedEventArgs e)
-        {
-/*
-            SaveFileDialog dialog = new SaveFileDialog();
-            dialog.Filter = "BMPファイル(*.bmp)|*.bmp"
-                + "|GIFファイル(*.gif)|*.gif"
-                + "|JPEGファイル(*.jpg)|*.jpg"
-                + "|PNGファイル(*.png)|*.png"
-                + "|TIFFファイル(*.tif)|*.tif";
-            Nullable<bool> result = dialog.ShowDialog();
-            if (result == true)
-            {
-                CommonUtils.BitmapSourceToFile(
-                    dialog.FileName, image.Source as BitmapSource);
-            }
-*/
+                return 0;
+            };
+
+            return await Task.Run(Job);
         }
     }
 
-    /// <summary>
-    /// 汎用のメソッド
-    /// </summary>
-    public static class CommonUtils
+        /// <summary>
+        /// 汎用のメソッド
+        /// </summary>
+        public static class CommonUtils
     {
         public static Color ColorBlend( Color col1, double d1, Color col2, double d2 )
         {

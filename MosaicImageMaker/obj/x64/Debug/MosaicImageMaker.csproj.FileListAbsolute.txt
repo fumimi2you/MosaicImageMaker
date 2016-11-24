@@ -12,3 +12,4 @@ D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Debug\MosaicImageMaker.Prope
 D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Debug\MosaicImageMaker.csproj.GenerateResource.Cache
 D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Debug\MosaicImageMaker.exe
 D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Debug\MosaicImageMaker.pdb
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Debug\MosaicImageMaker.csprojResolveAssemblyReference.cache
