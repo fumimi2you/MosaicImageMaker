@@ -12,13 +12,20 @@ using System.Collections.Generic;   // Dictionary;
 
 using System.Linq;  //  ランダムソート
 
+using System.Threading.Tasks;   // 並列処理
+
 namespace WpfAppSample
 {
     public class DEF
     {
-        public const int TH_W   = 160;
-        public const int TH_H   = 120;
-        public const int LET_D  = 100;
+        public const int TH_W = 160;
+        public const int TH_H = 120;
+        public const int LET_D = 100;
+
+        public const int SEEK_MAX = 1024;
+        public const double EPSILON_COL = 4;
+
+        public static double SQR(double d ) { return d*d; }
     }
 
 
@@ -86,8 +93,19 @@ namespace WpfAppSample
                 Bitmap bmTg = new Bitmap(imgTg);
 
                 //  出力先の構築(取り敢えずオリジナル画像をリサイズして突っ込む)
-                int iCelW = (int)Math.Sqrt(aImgLet.Count);
-                int iCelH = iCelW * imgTg.Height / imgTg.Width;
+                int iCelL = (int)Math.Sqrt(aImgLet.Count/2);
+                int iCelW = 0;
+                int iCelH = 0;
+                if (imgTg.Width > imgTg.Height)
+                {
+                    iCelW = iCelL;
+                    iCelH = iCelW * imgTg.Height / imgTg.Width;
+                }
+                else
+                {
+                    iCelH = iCelL;
+                    iCelW = iCelH * imgTg.Width / imgTg.Height;
+                }
                 Bitmap bmOut = new Bitmap(bmTg, DEF.LET_D * iCelW, DEF.LET_D * iCelH);
 
                 //  ターゲット画像Celの配列作成
@@ -103,6 +121,7 @@ namespace WpfAppSample
                     ImageLet imgLet = CommonUtils.SelectImageLet(imgCel.col, aImgLet);
 
                     for (int dy = 0; dy < DEF.LET_D; dy++)
+//                    Parallel.For( 0, DEF.LET_D, dy =>
                     {
                         int y = cy * DEF.LET_D + dy;
 
@@ -118,8 +137,15 @@ namespace WpfAppSample
                     }
                 }
 
+                //  ファイルを出力して開く
                 string stOutput = Path.GetDirectoryName(aFile[0]) + "\\rt\\ret" + Path.GetFileName(aFile[0]);
                 bmOut.Save(stOutput, System.Drawing.Imaging.ImageFormat.Jpeg);
+                System.Diagnostics.Process.Start( stOutput);
+
+                //  お片付け
+                imgTg.Dispose();
+                bmTg.Dispose();
+                bmOut.Dispose();
             }
         }
 
@@ -163,7 +189,8 @@ namespace WpfAppSample
         {
             List<ImageLet> aImgLet = new List<ImageLet>();
 
-            foreach (string sFile in aFile)
+            //foreach (string sFile in aFile)
+            Parallel.ForEach(aFile, sFile =>
             {
                 Console.WriteLine(sFile);
 
@@ -178,17 +205,17 @@ namespace WpfAppSample
                 if (MakeImageLet(imgTn, imgLet))
                 {
                     //  辞書に保存
-                    aImgLet.Add(imgLet);
+                    lock (aImgLet) aImgLet.Add(imgLet);
 
                     // サムネイルの保存(デバッグ用)
-                    string fileTh = Path.GetDirectoryName(sFile) + "\\tn\\" + Path.GetFileName(sFile);
-                    imgLet.bmData.Save(fileTh, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    //string fileTh = Path.GetDirectoryName(sFile) + "\\tn\\" + Path.GetFileName(sFile);
+                    //imgLet.bmData.Save(fileTh, System.Drawing.Imaging.ImageFormat.Jpeg);
                 }
 
                 //  お片付け
                 imgOg.Dispose();
                 imgTn.Dispose();
-            }
+            });
 
             return aImgLet;
         }
@@ -268,22 +295,31 @@ namespace WpfAppSample
 
         public static ImageLet SelectImageLet(Color col, List<ImageLet> aImgLet)
         {
+            int iSeekMax = Math.Min( aImgLet.Count, DEF.SEEK_MAX);
             int iSel = 0;
-            double dstMin = Math.Pow( 255, 3 );
+            double dstMin = 0xFFFFFF;
 
-            for( int i = 0; i < aImgLet.Count; i++)
+            for ( int i = 0; i < iSeekMax; i++)
             {
                 ImageLet imgLet = aImgLet[i];
 
-                double dist = Math.Pow(
-                    Math.Pow(col.R - imgLet.dAveR, 2) +
-                    Math.Pow(col.G - imgLet.dAveG, 2) +
-                    Math.Pow(col.B - imgLet.dAveB, 2), 0.5);
+                //  2点間距離(ルートはかけない)
+                double dist = 
+                    DEF.SQR(col.R - imgLet.dAveR) +
+                    DEF.SQR(col.G - imgLet.dAveG) +
+                    DEF.SQR(col.B - imgLet.dAveB);
 
+                //  最近距離の更新
                 if (dist < dstMin)
                 {
                     iSel = i;
                     dstMin = dist;
+
+                    //  十分に小さい場合は抜ける
+                    if (dstMin <= DEF.SQR( DEF.EPSILON_COL ) )
+                    {
+                        break;
+                    }
                 }
             }
 

@@ -1,0 +1,15 @@
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\bin\x64\Release\MosaicImageMaker.exe.config
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\bin\x64\Release\MosaicImageMaker.exe
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\bin\x64\Release\MosaicImageMaker.pdb
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\bin\x64\Release\Microsoft.WindowsAPICodePack.dll
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\bin\x64\Release\Microsoft.WindowsAPICodePack.Shell.dll
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Release\MainWindow.baml
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Release\MainWindow.g.cs
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Release\App.g.cs
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Release\MosaicImageMaker_MarkupCompile.cache
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Release\MosaicImageMaker.g.resources
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Release\MosaicImageMaker.Properties.Resources.resources
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Release\MosaicImageMaker.csproj.GenerateResource.Cache
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Release\MosaicImageMaker.exe
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Release\MosaicImageMaker.pdb
+D:\GitHub\MosaicImageMaker\MosaicImageMaker\obj\x64\Release\MosaicImageMaker.csprojResolveAssemblyReference.cache
