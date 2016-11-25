@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
 using System.IO;        // FileStream
 using System.Drawing;
+using System.Drawing.Imaging;
+
+using System.Runtime.InteropServices; // Marshal.Copy
 
 using Microsoft.WindowsAPICodePack.Dialogs; //CommonOpenFileDialog
 using System.Collections.Generic;   // Dictionary;
@@ -24,7 +26,7 @@ namespace WpfAppSample
         public const int SEEK_MAX = 1024;
         public const double EPSILON_COL = 4;
 
-        public static double SQR(double d ) { return d*d; }
+        public static double SQR(double d) { return d * d; }
     }
 
     public class ImgPath
@@ -35,12 +37,91 @@ namespace WpfAppSample
         public string sDstImg;
     }
 
+    public class UMImage
+    {
+        const int COL_SIZE = 4;
+        enum COL { cB = 0, cG = 1, cR = 2, cAlph = 3 };
+
+        int m_iW;
+        int m_iH;
+        byte[] m_aData;
+
+        public UMImage(int w, int h)
+        {
+            m_iW = w;
+            m_iH = h;
+            m_aData = new byte[m_iW * m_iH * COL_SIZE];
+        }
+
+        public UMImage(Bitmap bmOrg)
+        {
+            m_iW = bmOrg.Size.Width;
+            m_iH = bmOrg.Size.Width;
+            m_aData = new byte[m_iW * m_iH * COL_SIZE];
+
+            BitmapData data = bmOrg.LockBits(
+                new Rectangle(0, 0, m_iW, m_iH),
+                ImageLockMode.ReadWrite,
+                PixelFormat.Format32bppArgb);
+            Marshal.Copy(data.Scan0, m_aData, 0, m_aData.Length);
+            bmOrg.UnlockBits(data);
+        }
+
+        public UMImage(Image imOrg)
+        {
+            m_iW = imOrg.Size.Width;
+            m_iH = imOrg.Size.Width;
+            m_aData = new byte[m_iW * m_iH * COL_SIZE];
+
+            Bitmap bm = new Bitmap(imOrg);
+            BitmapData data = bm.LockBits(
+                new Rectangle(0, 0, m_iW, m_iH),
+                ImageLockMode.ReadWrite,
+                PixelFormat.Format32bppArgb);
+            Marshal.Copy(data.Scan0, m_aData, 0, m_aData.Length);
+            bm.UnlockBits(data);
+        }
+
+        int CalcAdr(int x, int y, COL c)
+        {
+            return (y * m_iW + x) * COL_SIZE + (int)c;
+        }
+
+        public void SetPixel(int x, int y, Color col)
+        {
+            m_aData[CalcAdr(x, y, COL.cR)] = col.R;
+            m_aData[CalcAdr(x, y, COL.cG)] = col.G;
+            m_aData[CalcAdr(x, y, COL.cB)] = col.B;
+        }
+        public Color GetPixel(int x, int y)
+        {
+            return Color.FromArgb(
+                m_aData[CalcAdr(x, y, COL.cR)],
+                m_aData[CalcAdr(x, y, COL.cG)],
+                m_aData[CalcAdr(x, y, COL.cB)]);
+        }
+
+        public Bitmap GetBitmap()
+        {
+            Bitmap bmRet = new Bitmap(m_iW, m_iH);
+
+            BitmapData data = bmRet.LockBits(
+                new Rectangle(0, 0, m_iW, m_iH),
+                ImageLockMode.ReadWrite,
+                PixelFormat.Format32bppArgb);
+            Marshal.Copy(m_aData, 0, data.Scan0, m_aData.Length);
+            bmRet.UnlockBits(data);
+
+            return bmRet;
+        }
+    }
+
     public class ImageLet
     {
         public double dAveR;
         public double dAveG;
         public double dAveB;
-        public Bitmap bmData;
+        public UMImage bmData;
     }
 
     public class ImageCel
@@ -121,7 +202,10 @@ namespace WpfAppSample
             var spProg1 = new Progress<int>(ShowProgress1);
             var spProg2 = new Progress<int>(ShowProgress2);
 
+            //  実処理実行
             await Do(m_path, spProg1, spProg2);
+
+            GC.Collect();
         }
 
         // 進捗を表示するメソッド（これはUIスレッドで呼び出される）
@@ -135,7 +219,7 @@ namespace WpfAppSample
         }
 
         //  実処理
-        public static async Task<int> Do( ImgPath path, IProgress<int> spProg1, IProgress<int> spProg2)
+        public static async Task<int> Do(ImgPath path, IProgress<int> spProg1, IProgress<int> spProg2)
         {
             Func<int> Job = () =>
             {
@@ -161,7 +245,9 @@ namespace WpfAppSample
                     iCelH = iCelL;
                     iCelW = iCelH * imgTg.Width / imgTg.Height;
                 }
-                Bitmap bmOut = new Bitmap(bmTg, DEF.LET_D * iCelW, DEF.LET_D * iCelH);
+                Bitmap bmTmp = new Bitmap(bmTg, DEF.LET_D * iCelW, DEF.LET_D * iCelH);
+                UMImage imgOut = new UMImage(bmTmp);
+                bmTmp.Dispose();
 
                 //  ターゲット画像Celの配列作成
                 List<ImageCel> aImgCel = CommonUtils.MakeImageCels(imgTg, iCelW, iCelH);
@@ -177,36 +263,37 @@ namespace WpfAppSample
                     int iSel = CommonUtils.SelectImageLet(imgCel.col, aImgLet);
                     ImageLet imgLet = aImgLet[iSel];
 
-                    for (int dy = 0; dy < DEF.LET_D; dy++)
-                    //                    Parallel.For( 0, DEF.LET_D, dy =>
-                    {
-                        int y = cy * DEF.LET_D + dy;
+                    //for (int dy = 0; dy < DEF.LET_D; dy++)
+                    Parallel.For(0, DEF.LET_D, dy =>
+                   {
+                       int y = cy * DEF.LET_D + dy;
 
-                        for (int dx = 0; dx < DEF.LET_D; dx++)
-                        {
-                            int x = cx * DEF.LET_D + dx;
+                       for (int dx = 0; dx < DEF.LET_D; dx++)
+                       {
+                           int x = cx * DEF.LET_D + dx;
 
                             //  値の取得
                             Color colMid = CommonUtils.ColorBlend(imgLet.bmData.GetPixel(dx, dy), 9, imgCel.col, 1);
 
-                            bmOut.SetPixel(x, y, CommonUtils.ColorBlend(colMid, 9, bmOut.GetPixel(x, y), 1));
-                        }
-                    }
+                           imgOut.SetPixel(x, y, CommonUtils.ColorBlend(colMid, 9, imgOut.GetPixel(x, y), 1));
+                       }
+                   });
 
                     //  一度使ったimgLetはもう使わない
                     aImgLet.RemoveAt(iSel);
 
                     //  どこにも属さないimgLetが溜まらないように、適度にシャッフル
-                    if( ( (iProg+1) % (DEF.SEEK_MAX/2) ) == 0 )
+                    if (((iProg + 1) % (DEF.SEEK_MAX / 2)) == 0)
                     {
                         aImgCel = new List<ImageCel>(aImgCel.OrderBy(i => Guid.NewGuid()).ToArray());
                     }
 
                     //  プログレス処理
-                    spProg2.Report( (++iProg) * 100 / (iCelW * iCelH));
+                    spProg2.Report((++iProg) * 100 / (iCelW * iCelH));
                 }
 
                 //  ファイルを出力して開く
+                Bitmap bmOut = imgOut.GetBitmap();
                 bmOut.Save(path.sDstImg, System.Drawing.Imaging.ImageFormat.Jpeg);
                 System.Diagnostics.Process.Start(path.sDstImg);
 
@@ -222,18 +309,18 @@ namespace WpfAppSample
         }
     }
 
-        /// <summary>
-        /// 汎用のメソッド
-        /// </summary>
-        public static class CommonUtils
+    /// <summary>
+    /// 汎用のメソッド
+    /// </summary>
+    public static class CommonUtils
     {
-        public static Color ColorBlend( Color col1, double d1, Color col2, double d2 )
+        public static Color ColorBlend(Color col1, double d1, Color col2, double d2)
         {
             double dR = (d1 * col1.R + d2 * col2.R) / (d1 + d2);
             double dG = (d1 * col1.G + d2 * col2.G) / (d1 + d2);
             double dB = (d1 * col1.B + d2 * col2.B) / (d1 + d2);
 
-            return Color.FromArgb( (int)dR, (int)dG, (int)dB);
+            return Color.FromArgb((int)dR, (int)dG, (int)dB);
         }
 
         // 素材画像のImageLet
@@ -242,6 +329,7 @@ namespace WpfAppSample
             List<ImageLet> aImgLet = new List<ImageLet>();
 
             //foreach (string sFile in aFile)
+            Object thisLock = new Object();
             int iProc = 0;
             Parallel.ForEach(aFile, sFile =>
             {
@@ -255,9 +343,12 @@ namespace WpfAppSample
                 ImageLet imgLet = new ImageLet();
                 if (MakeImageLet(imgTn, imgLet))
                 {
-                    //  辞書に保存
-                    lock (aImgLet) aImgLet.Add(imgLet);
-                    spProg.Report(++iProc);
+                    lock (thisLock)
+                    {
+                        //  辞書に保存
+                        lock (aImgLet) aImgLet.Add(imgLet);
+                        spProg.Report(++iProc);
+                    }
                 }
 
                 //  お片付け
@@ -310,7 +401,7 @@ namespace WpfAppSample
             int iYe = (DEF.TH_H + DEF.LET_D) / 2;
 
             //  imgLetの生成
-            imgLet.bmData = new Bitmap(DEF.LET_D, DEF.LET_D);
+            imgLet.bmData = new UMImage(DEF.LET_D, DEF.LET_D);
 
             //  ビットマップに変換
             Bitmap bmTn = new Bitmap(imgTn);
@@ -318,9 +409,9 @@ namespace WpfAppSample
             double vR = 0;
             double vG = 0;
             double vB = 0;
-            for (int y= iYs; y< iYe; y++)
+            for (int y = iYs; y < iYe; y++)
             {
-                for(int x= iXs; x< iXe; x++)
+                for (int x = iXs; x < iXe; x++)
                 {
                     //  画素値コピー
                     Color colVal = bmTn.GetPixel(x, y);
@@ -345,32 +436,34 @@ namespace WpfAppSample
         {
             int iRet = 0;
 
-            int iSeekMax = Math.Min( aImgLet.Count, DEF.SEEK_MAX);
+            int iSeekMax = Math.Min(aImgLet.Count, DEF.SEEK_MAX);
             double dstMin = 0xFFFFFF;
 
-            for ( int i = 0; i < iSeekMax; i++)
+            Object thisLock = new Object();
+
+            //for (int i = 0; i < iSeekMax; i++)
+            Parallel.For(0, iSeekMax, i =>
             {
                 ImageLet imgLet = aImgLet[i];
 
                 //  2点間距離(ルートはかけない)
-                double dist = 
+                double dist =
                     DEF.SQR(col.R - imgLet.dAveR) +
                     DEF.SQR(col.G - imgLet.dAveG) +
                     DEF.SQR(col.B - imgLet.dAveB);
 
+
                 //  最近距離の更新
                 if (dist < dstMin)
                 {
-                    iRet = i;
-                    dstMin = dist;
-
-                    //  十分に小さい場合は抜ける
-                    if (dstMin <= DEF.SQR( DEF.EPSILON_COL ) )
+                    //  排他処理
+                    lock (thisLock)
                     {
-                        break;
+                        iRet = i;
+                        dstMin = dist;
                     }
                 }
-            }
+            });
 
             return iRet;
         }

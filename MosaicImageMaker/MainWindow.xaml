@@ -4,21 +4,14 @@
         Title="MainWindow" Height="256.333" Width="599.333">
     <StackPanel x:Name="LayoutRoot" Orientation="Vertical" Margin="0,0,2,3">
         <StackPanel Orientation="Horizontal">
-            <TextBox Height="24" Name="TextBox1" Width="533" HorizontalAlignment="Left"
-                 Text="素材画像 格納フォルダ" Margin="10,10,0,10" />
-            <Button Content="..." Height="24" Width="23"
-                HorizontalAlignment="Left" Margin="10,10,0,10" Click="SetImgDir_Click" />
+            <TextBox Height="24" Name="TextBox1" Width="533" HorizontalAlignment="Left"  Text="素材画像 格納フォルダ" Margin="10,10,0,10" />
+            <Button Content="..." Height="24" Width="23"   HorizontalAlignment="Left" Margin="10,10,0,10" Click="SetImgDir_Click" />
         </StackPanel>
-        <TextBlock Height="23" x:Name="TextBlock1" Text="目標画像 ファイルパス"
-                   HorizontalAlignment="Left" Margin="10,0,0,10" />
-        <TextBlock Height="23" x:Name="TextBlock2" Text="出力画像 ファイルパス"
-            HorizontalAlignment="Left" Margin="10,0,0,10" />
-        <Button Content="実行" Height="23" Width="75"
-                HorizontalAlignment="Left" Margin="10,10,0,10" Click="Button_Click_1" />
-        <ProgressBar Height="20" HorizontalAlignment="Left" x:Name="progressBar1"
-                         VerticalAlignment="Top" Width="569" Margin="10,0,0,10" />
-        <ProgressBar Height="20" x:Name="progressBar2"
-            VerticalAlignment="Top" Margin="10,0,10,10" />
+        <TextBlock Height="23" x:Name="TextBlock1" Text="目標画像 ファイルパス"  HorizontalAlignment="Left" Margin="10,0,0,10" />
+        <TextBlock Height="23" x:Name="TextBlock2" Text="出力画像 ファイルパス"  HorizontalAlignment="Left" Margin="10,0,0,10" />
+        <Button Content="実行" Height="23" Width="75" HorizontalAlignment="Left" Margin="10,10,0,10" Click="Button_Click_1" />
+        <ProgressBar Height="20" x:Name="progressBar1"  VerticalAlignment="Top" Margin="10,0,10,10" />
+        <ProgressBar Height="20" x:Name="progressBar2"  VerticalAlignment="Top" Margin="10,0,10,10" />
 
     </StackPanel>
 </Window>
