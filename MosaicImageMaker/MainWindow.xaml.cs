@@ -102,27 +102,45 @@ namespace WpfAppSample
                 TextBox1.Text = m_path.sSrcDir;
                 TextBlock1.Text = m_path.sTgtImg;
                 TextBlock2.Text = m_path.sDstImg;
-
-                progressBar1.Minimum = 0;
-                progressBar1.Maximum = m_path.asSrcImg.Length;
-                progressBar1.Value = 0;
             }
 
         }
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)
         {
-            await Do(m_path);
+
+            progressBar1.Minimum = 0;
+            progressBar1.Maximum = m_path.asSrcImg.Length;
+            progressBar1.Value = 0;
+
+            progressBar2.Minimum = 0;
+            progressBar2.Maximum = 100;
+            progressBar2.Value = 0;
+
+            // Progressクラスのインスタンスを生成
+            var spProg1 = new Progress<int>(ShowProgress1);
+            var spProg2 = new Progress<int>(ShowProgress2);
+
+            await Do(m_path, spProg1, spProg2);
         }
 
+        // 進捗を表示するメソッド（これはUIスレッドで呼び出される）
+        private void ShowProgress1(int iVal)
+        {
+            progressBar1.Value = iVal;
+        }
+        private void ShowProgress2(int iVal)
+        {
+            progressBar2.Value = iVal;
+        }
 
-
-        public async Task<int> Do( ImgPath path )
+        //  実処理
+        public static async Task<int> Do( ImgPath path, IProgress<int> spProg1, IProgress<int> spProg2)
         {
             Func<int> Job = () =>
             {
                 //  LetImgの配列を構築
-                List<ImageLet> aImgLet = CommonUtils.MakeImageLets(path.asSrcImg);
+                List<ImageLet> aImgLet = CommonUtils.MakeImageLets(path.asSrcImg, spProg1);
 
 
                 //  ターゲット画像の読み込み
@@ -149,12 +167,15 @@ namespace WpfAppSample
                 List<ImageCel> aImgCel = CommonUtils.MakeImageCels(imgTg, iCelW, iCelH);
 
                 //  モザイク処理
+                int iProg = 0;
                 foreach (ImageCel imgCel in aImgCel)
                 {
                     int cy = (int)imgCel.pt.Y;
                     int cx = (int)imgCel.pt.X;
 
-                    ImageLet imgLet = CommonUtils.SelectImageLet(imgCel.col, aImgLet);
+                    //  最も近いimgLetを選択
+                    int iSel = CommonUtils.SelectImageLet(imgCel.col, aImgLet);
+                    ImageLet imgLet = aImgLet[iSel];
 
                     for (int dy = 0; dy < DEF.LET_D; dy++)
                     //                    Parallel.For( 0, DEF.LET_D, dy =>
@@ -171,6 +192,18 @@ namespace WpfAppSample
                             bmOut.SetPixel(x, y, CommonUtils.ColorBlend(colMid, 9, bmOut.GetPixel(x, y), 1));
                         }
                     }
+
+                    //  一度使ったimgLetはもう使わない
+                    aImgLet.RemoveAt(iSel);
+
+                    //  どこにも属さないimgLetが溜まらないように、適度にシャッフル
+                    if( ( (iProg+1) % (DEF.SEEK_MAX/2) ) == 0 )
+                    {
+                        aImgCel = new List<ImageCel>(aImgCel.OrderBy(i => Guid.NewGuid()).ToArray());
+                    }
+
+                    //  プログレス処理
+                    spProg2.Report( (++iProg) * 100 / (iCelW * iCelH));
                 }
 
                 //  ファイルを出力して開く
@@ -204,15 +237,14 @@ namespace WpfAppSample
         }
 
         // 素材画像のImageLet
-        public static List<ImageLet> MakeImageLets(string[] aFile)
+        public static List<ImageLet> MakeImageLets(string[] aFile, IProgress<int> spProg)
         {
             List<ImageLet> aImgLet = new List<ImageLet>();
 
             //foreach (string sFile in aFile)
+            int iProc = 0;
             Parallel.ForEach(aFile, sFile =>
             {
-                Console.WriteLine(sFile);
-
                 // 画像オブジェクトの作成
                 Image imgOg = Image.FromFile(sFile);
 
@@ -225,10 +257,7 @@ namespace WpfAppSample
                 {
                     //  辞書に保存
                     lock (aImgLet) aImgLet.Add(imgLet);
-
-                    // サムネイルの保存(デバッグ用)
-                    //string fileTh = Path.GetDirectoryName(sFile) + "\\tn\\" + Path.GetFileName(sFile);
-                    //imgLet.bmData.Save(fileTh, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    spProg.Report(++iProc);
                 }
 
                 //  お片付け
@@ -312,10 +341,11 @@ namespace WpfAppSample
             return true;
         }
 
-        public static ImageLet SelectImageLet(Color col, List<ImageLet> aImgLet)
+        public static int SelectImageLet(Color col, List<ImageLet> aImgLet)
         {
+            int iRet = 0;
+
             int iSeekMax = Math.Min( aImgLet.Count, DEF.SEEK_MAX);
-            int iSel = 0;
             double dstMin = 0xFFFFFF;
 
             for ( int i = 0; i < iSeekMax; i++)
@@ -331,7 +361,7 @@ namespace WpfAppSample
                 //  最近距離の更新
                 if (dist < dstMin)
                 {
-                    iSel = i;
+                    iRet = i;
                     dstMin = dist;
 
                     //  十分に小さい場合は抜ける
@@ -342,10 +372,7 @@ namespace WpfAppSample
                 }
             }
 
-            ImageLet imgLetRet = aImgLet[iSel];
-            aImgLet.RemoveAt(iSel);
-
-            return imgLetRet;
+            return iRet;
         }
 
         // BitmapSource → 画像ファイル
