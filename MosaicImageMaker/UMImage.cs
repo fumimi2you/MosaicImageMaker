@@ -86,4 +86,18 @@ namespace MosaicImageMaker
             return bmRet;
         }
     }
+
+    public class ImageLet
+    {
+        public double dAveR;
+        public double dAveG;
+        public double dAveB;
+        public UMImage bmData;
+    }
+
+    public class ImageCel
+    {
+        public System.Windows.Point pt;
+        public Color col;
+    }
 }
