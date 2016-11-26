@@ -15,16 +15,21 @@ namespace MosaicImageMaker
 {
     public class DEF
     {
+        public const int COL_SIZE = 4;
+        public enum COL { cB = 0, cG = 1, cR = 2, cAlph = 3 };
+
         public const int PERCENT_MAX = 100;
 
         public const int TH_W = 160;
         public const int TH_H = 120;
         public const int LET_D = 100;
-
+        
         public const int LET_IMG_MIN = 100;
+        public const int FIT_DELTA = 2;
         public const int SEEK_MAX = 4096;
 
         public static double SQR(double d) { return d * d; }
+        public static int SQR(int d) { return d * d; }
     }
 
     /// <summary>
