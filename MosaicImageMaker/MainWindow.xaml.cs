@@ -6,10 +6,11 @@ using System.IO;        // FileStream
 using System.Drawing;
 using System.Drawing.Imaging;
 
+using System.Collections.Generic;   // Dictionary;
 using System.Runtime.InteropServices; // Marshal.Copy
 
+using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs; //CommonOpenFileDialog
-using System.Collections.Generic;   // Dictionary;
 
 using System.Linq;  //  ランダムソート
 
@@ -23,8 +24,7 @@ namespace WpfAppSample
         public const int TH_H = 120;
         public const int LET_D = 100;
 
-        public const int SEEK_MAX = 1024;
-        public const double EPSILON_COL = 4;
+        public const int SEEK_MAX = 4096;
 
         public static double SQR(double d) { return d * d; }
     }
@@ -154,9 +154,11 @@ namespace WpfAppSample
         public MainWindow()
         {
             InitializeComponent();
+
+            m_path = new ImgPath();
         }
 
-        private void SetImgDir_Click(object sender, RoutedEventArgs e)
+        private void SetSrcDir_Click(object sender, RoutedEventArgs e)
         {
             var Dialog = new CommonOpenFileDialog();
             // フォルダーを開く設定に
@@ -171,20 +173,44 @@ namespace WpfAppSample
             // もし開かれているなら
             if (Result == CommonFileDialogResult.Ok)
             {
-                m_path = new ImgPath();
-
                 m_path.asSrcImg = System.IO.Directory.GetFiles(
-                Dialog.FileName, "*.jpg", System.IO.SearchOption.TopDirectoryOnly);
+                    Dialog.FileName, "*.jpg", System.IO.SearchOption.TopDirectoryOnly);
                 m_path.sSrcDir = Path.GetDirectoryName(m_path.asSrcImg[0]);
-                m_path.sTgtImg = m_path.asSrcImg[0];
-                m_path.sDstImg = m_path.sSrcDir + "\\rt\\ret" + Path.GetFileName(m_path.sTgtImg);
 
-
-                TextBox1.Text = m_path.sSrcDir;
-                TextBlock1.Text = m_path.sTgtImg;
-                TextBlock2.Text = m_path.sDstImg;
+                TextBox_SecImgDir.Text = m_path.sSrcDir;
+                TextBlock_DrcImgCnt.Text = "有効画像枚数 : " + m_path.asSrcImg.Length.ToString("#,0") ;
             }
 
+        }
+
+        private void SetTgtPath_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog();
+            dialog.Title = "目標画像ファイルを開く";
+            dialog.Filter = "JPEGファイル(*.jpg)|*.jpg";
+            if (dialog.ShowDialog() == true)
+            {
+                m_path.sTgtImg = dialog.FileName;
+                TextBox_TgtImgDir.Text = m_path.sTgtImg;
+            }
+            else
+            {
+            }
+        }
+
+        private void SetDstPath_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new SaveFileDialog();
+            dialog.Title = "主力画像ファイルを保存";
+            dialog.Filter = "JPEGファイル(*.jpg)|*.jpg";
+            if (dialog.ShowDialog() == true)
+            {
+                m_path.sDstImg = dialog.FileName;
+                TextBox_DstImgDir.Text = m_path.sDstImg;
+            }
+            else
+            {
+            }
         }
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)
@@ -205,6 +231,8 @@ namespace WpfAppSample
             //  実処理実行
             await Do(m_path, spProg1, spProg2);
 
+            TextBlock_Report.Text = "できました！";
+
             GC.Collect();
         }
 
@@ -212,10 +240,12 @@ namespace WpfAppSample
         private void ShowProgress1(int iVal)
         {
             progressBar1.Value = iVal;
+            TextBlock_Report.Text = "一通り素材画像を見てみます。";
         }
         private void ShowProgress2(int iVal)
         {
             progressBar2.Value = iVal;
+            TextBlock_Report.Text = "タイリングの組み合わせを考えてみます。";
         }
 
         //  実処理
