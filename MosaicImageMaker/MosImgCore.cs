@@ -67,7 +67,7 @@ namespace MosaicImageMaker
                     int cx = (int)imgCel.pt.X;
 
                     //  最も近いimgLetを選択
-                    int iSel = SelectImageLet(imgCel.col, aImgLet);
+                    int iSel = SelectImageLet(imgCel.aCol, aImgLet);
                     ImageLet imgLet = aImgLet[iSel];
 
                     //for (int dy = 0; dy < DEF.LET_D; dy++)
@@ -80,9 +80,7 @@ namespace MosaicImageMaker
                             int x = cx * DEF.LET_D + dx;
 
                             //  値の取得
-                            Color colMid = CommonUtils.ColorBlend(imgLet.bmData.GetPixel(dx, dy), 9, imgCel.col, 1);
-
-                            imgOut.SetPixel(x, y, CommonUtils.ColorBlend(colMid, 9, imgOut.GetPixel(x, y), 1));
+                            imgOut.SetPixel(x, y, CommonUtils.ColorBlend(imgLet.bmData.GetPixel(dx, dy), 9, imgOut.GetPixel(x, y), 1));
                         }
                     });
 
@@ -163,21 +161,24 @@ namespace MosaicImageMaker
         public static List<ImageCel> MakeImageCels(Image imgOg, int iCelW, int iCelH)
         {
             // サムネイルの取得
-            Image imgTn = imgOg.GetThumbnailImage(iCelW, iCelH, delegate { return false; }, IntPtr.Zero);
+            Image imgTn = imgOg.GetThumbnailImage(iCelW*DEF.FIT_DELTA, iCelH*DEF.FIT_DELTA, delegate { return false; }, IntPtr.Zero);
 
             //  ビットマップに変換
             Bitmap bmTn = new Bitmap(imgTn);
 
             //  セルの作成
             List<ImageCel> ptTmp = new List<ImageCel>();
-            for (int cy = 0; cy < iCelH; cy++)
+            for (int cy = 0; cy < imgTn.Height; cy+=DEF.FIT_DELTA)
             {
-                for (int cx = 0; cx < iCelW; cx++)
+                for (int cx = 0; cx < imgTn.Width; cx+=DEF.FIT_DELTA)
                 {
                     ImageCel imgCel = new ImageCel();
-                    imgCel.pt.X = cx;
-                    imgCel.pt.Y = cy;
-                    imgCel.col = bmTn.GetPixel(cx, cy);
+                    imgCel.pt.X = cx/DEF.FIT_DELTA;
+                    imgCel.pt.Y = cy/DEF.FIT_DELTA;
+                    imgCel.aCol[0] = bmTn.GetPixel(cx+0, cy+0);
+                    imgCel.aCol[1] = bmTn.GetPixel(cx+1, cy+0);
+                    imgCel.aCol[2] = bmTn.GetPixel(cx+0, cy+1);
+                    imgCel.aCol[3] = bmTn.GetPixel(cx+1, cy+1);
 
                     ptTmp.Add(imgCel);
                 }
@@ -190,15 +191,15 @@ namespace MosaicImageMaker
         }
 
 
-
         // 画像ファイル → ImageLet
         public static Boolean MakeImageLet(Image imgTn, ImageLet imgLet)
         {
-            //  定数計算
+            //  定数計算(ImageLetの評価値は2x2分割決め打ちで取ってくるので、左上1/4を計算)
+            const int iDh = DEF.LET_D / 2;
             int iXs = (DEF.TH_W - DEF.LET_D) / 2;
-            int iXe = (DEF.TH_W + DEF.LET_D) / 2;
             int iYs = (DEF.TH_H - DEF.LET_D) / 2;
-            int iYe = (DEF.TH_H + DEF.LET_D) / 2;
+            int iXe = DEF.TH_W / 2;
+            int iYe = DEF.TH_H / 2;
 
             //  imgLetの生成
             imgLet.bmData = new UMImage(DEF.LET_D, DEF.LET_D);
@@ -206,38 +207,55 @@ namespace MosaicImageMaker
             //  ビットマップに変換
             Bitmap bmTn = new Bitmap(imgTn);
 
-            double vR = 0;
-            double vG = 0;
-            double vB = 0;
+            double[] aR = new double[DEF.SQR(DEF.FIT_DELTA)];
+            double[] aG = new double[DEF.SQR(DEF.FIT_DELTA)];
+            double[] aB = new double[DEF.SQR(DEF.FIT_DELTA)];
             for (int y = iYs; y < iYe; y++)
             {
+                int yy = y - iYs;
+
                 for (int x = iXs; x < iXe; x++)
                 {
+                    int xx = x - iXs;
                     //  画素値コピー
-                    Color colVal = bmTn.GetPixel(x, y);
-                    imgLet.bmData.SetPixel(x - iXs, y - iYs, colVal);
+                    Color[] aCol = new Color[] {
+                        bmTn.GetPixel(x    , y    ),
+                        bmTn.GetPixel(x+iDh, y    ),
+                        bmTn.GetPixel(x    , y+iDh),
+                        bmTn.GetPixel(x+iDh, y+iDh) };
+
+                    imgLet.bmData.SetPixel(xx    , yy    , aCol[0]);
+                    imgLet.bmData.SetPixel(xx+iDh, yy    , aCol[1]);
+                    imgLet.bmData.SetPixel(xx    , yy+iDh, aCol[2]);
+                    imgLet.bmData.SetPixel(xx+iDh, yy+iDh, aCol[3]);
 
                     //  平均用の積算
-                    vR += colVal.R;
-                    vG += colVal.G;
-                    vB += colVal.B;
+                    for (int a = 0; a < DEF.SQR(DEF.FIT_DELTA); a++)
+                    {
+                        aR[a] += aCol[a].R;
+                        aG[a] += aCol[a].G;
+                        aB[a] += aCol[a].B;
+                    }
                 }
             }
 
-            //  平均値産出
-            imgLet.dAveR = vR / (DEF.LET_D * DEF.LET_D);
-            imgLet.dAveG = vG / (DEF.LET_D * DEF.LET_D);
-            imgLet.dAveB = vB / (DEF.LET_D * DEF.LET_D);
+            //  平均値算出
+            for (int a = 0; a < DEF.SQR(DEF.FIT_DELTA); a++)
+            {
+                imgLet.adAveR[a] += aR[a] / DEF.SQR(iDh);
+                imgLet.adAveG[a] += aG[a] / DEF.SQR(iDh);
+                imgLet.adAveB[a] += aB[a] / DEF.SQR(iDh);
+            }
 
             return true;
         }
 
-        public static int SelectImageLet(Color col, List<ImageLet> aImgLet)
+        public static int SelectImageLet(Color[] aCol, List<ImageLet> aImgLet)
         {
             int iRet = 0;
 
             int iSeekMax = Math.Min(aImgLet.Count, DEF.SEEK_MAX);
-            double dstMin = 0xFFFFFF;
+            double dstMin = 0x0FFFFFFF;
 
             Object thisLock = new Object();
 
@@ -246,12 +264,13 @@ namespace MosaicImageMaker
             {
                 ImageLet imgLet = aImgLet[i];
 
-                //  2点間距離(ルートはかけない)
-                double dist =
-                    DEF.SQR(col.R - imgLet.dAveR) +
-                    DEF.SQR(col.G - imgLet.dAveG) +
-                    DEF.SQR(col.B - imgLet.dAveB);
-
+                //  3色, 4箇所の二乗誤差を積算
+                double dist = 0;
+                for (int a = 0; a < DEF.SQR(DEF.FIT_DELTA); a++)
+                {
+                    //  2点間距離(大小関係だけに着目するのでroot処理は不要)
+                    dist += DEF.SQR(aCol[a].R - imgLet.adAveR[a]) + DEF.SQR(aCol[a].G - imgLet.adAveG[a]) + DEF.SQR(aCol[a].B - imgLet.adAveB[a]);
+                }
 
                 //  最近距離の更新
                 if (dist < dstMin)

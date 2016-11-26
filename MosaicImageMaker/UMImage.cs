@@ -10,9 +10,6 @@ namespace MosaicImageMaker
 
     public class UMImage
     {
-        const int COL_SIZE = 4;
-        enum COL { cB = 0, cG = 1, cR = 2, cAlph = 3 };
-
         int m_iW;
         int m_iH;
         byte[] m_aData;
@@ -21,14 +18,14 @@ namespace MosaicImageMaker
         {
             m_iW = w;
             m_iH = h;
-            m_aData = new byte[m_iW * m_iH * COL_SIZE];
+            m_aData = new byte[m_iW * m_iH * DEF.COL_SIZE];
         }
 
         public UMImage(Bitmap bmOrg)
         {
             m_iW = bmOrg.Size.Width;
             m_iH = bmOrg.Size.Height;
-            m_aData = new byte[m_iW * m_iH * COL_SIZE];
+            m_aData = new byte[m_iW * m_iH * DEF.COL_SIZE];
 
             BitmapData data = bmOrg.LockBits(
                 new Rectangle(0, 0, m_iW, m_iH),
@@ -42,7 +39,7 @@ namespace MosaicImageMaker
         {
             m_iW = imOrg.Size.Width;
             m_iH = imOrg.Size.Height;
-            m_aData = new byte[m_iW * m_iH * COL_SIZE];
+            m_aData = new byte[m_iW * m_iH * DEF.COL_SIZE];
 
             Bitmap bm = new Bitmap(imOrg);
             BitmapData data = bm.LockBits(
@@ -53,23 +50,23 @@ namespace MosaicImageMaker
             bm.UnlockBits(data);
         }
 
-        int CalcAdr(int x, int y, COL c)
+        int CalcAdr(int x, int y, DEF.COL c)
         {
-            return (y * m_iW + x) * COL_SIZE + (int)c;
+            return (y * m_iW + x) * DEF.COL_SIZE + (int)c;
         }
 
         public void SetPixel(int x, int y, Color col)
         {
-            m_aData[CalcAdr(x, y, COL.cR)] = col.R;
-            m_aData[CalcAdr(x, y, COL.cG)] = col.G;
-            m_aData[CalcAdr(x, y, COL.cB)] = col.B;
+            m_aData[CalcAdr(x, y, DEF.COL.cR)] = col.R;
+            m_aData[CalcAdr(x, y, DEF.COL.cG)] = col.G;
+            m_aData[CalcAdr(x, y, DEF.COL.cB)] = col.B;
         }
         public Color GetPixel(int x, int y)
         {
             return Color.FromArgb(
-                m_aData[CalcAdr(x, y, COL.cR)],
-                m_aData[CalcAdr(x, y, COL.cG)],
-                m_aData[CalcAdr(x, y, COL.cB)]);
+                m_aData[CalcAdr(x, y, DEF.COL.cR)],
+                m_aData[CalcAdr(x, y, DEF.COL.cG)],
+                m_aData[CalcAdr(x, y, DEF.COL.cB)]);
         }
 
         public Bitmap GetBitmap()
@@ -89,15 +86,27 @@ namespace MosaicImageMaker
 
     public class ImageLet
     {
-        public double dAveR;
-        public double dAveG;
-        public double dAveB;
+        public double[] adAveR;
+        public double[] adAveG;
+        public double[] adAveB;
         public UMImage bmData;
+
+        public ImageLet()
+        {
+             adAveR = new double[DEF.SQR(DEF.FIT_DELTA)];
+             adAveG = new double[DEF.SQR(DEF.FIT_DELTA)];
+             adAveB = new double[DEF.SQR(DEF.FIT_DELTA)];
+        }
     }
 
     public class ImageCel
     {
         public System.Windows.Point pt;
-        public Color col;
+        public Color[] aCol;    // FIT_DELTA*FIT_DELTA個
+
+        public ImageCel()
+        {
+            aCol = new Color[DEF.SQR(DEF.FIT_DELTA)];
+        }
     }
 }
