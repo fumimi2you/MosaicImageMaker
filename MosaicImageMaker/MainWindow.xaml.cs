@@ -4,10 +4,8 @@ using System.Windows.Media.Imaging;
 
 using System.IO;        // FileStream
 using System.Drawing;
-using System.Drawing.Imaging;
 
 using System.Collections.Generic;   // Dictionary;
-using System.Runtime.InteropServices; // Marshal.Copy
 
 using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs; //CommonOpenFileDialog
@@ -17,7 +15,7 @@ using System.Threading.Tasks;   // 並列処理
 
 using nsInifileUtils;
 
-namespace WpfAppSample
+namespace MosaicImageMaker
 {
     public class DEF
     {
@@ -28,93 +26,6 @@ namespace WpfAppSample
         public const int SEEK_MAX = 4096;
 
         public static double SQR(double d) { return d * d; }
-    }
-
-    public class ImgPath
-    {
-        public string[] asSrcImg;
-        public string sSrcDir;
-        public string sTgtImg;
-        public string sDstImg;
-    }
-
-    public class UMImage
-    {
-        const int COL_SIZE = 4;
-        enum COL { cB = 0, cG = 1, cR = 2, cAlph = 3 };
-
-        int m_iW;
-        int m_iH;
-        byte[] m_aData;
-
-        public UMImage(int w, int h)
-        {
-            m_iW = w;
-            m_iH = h;
-            m_aData = new byte[m_iW * m_iH * COL_SIZE];
-        }
-
-        public UMImage(Bitmap bmOrg)
-        {
-            m_iW = bmOrg.Size.Width;
-            m_iH = bmOrg.Size.Width;
-            m_aData = new byte[m_iW * m_iH * COL_SIZE];
-
-            BitmapData data = bmOrg.LockBits(
-                new Rectangle(0, 0, m_iW, m_iH),
-                ImageLockMode.ReadWrite,
-                PixelFormat.Format32bppArgb);
-            Marshal.Copy(data.Scan0, m_aData, 0, m_aData.Length);
-            bmOrg.UnlockBits(data);
-        }
-
-        public UMImage(Image imOrg)
-        {
-            m_iW = imOrg.Size.Width;
-            m_iH = imOrg.Size.Width;
-            m_aData = new byte[m_iW * m_iH * COL_SIZE];
-
-            Bitmap bm = new Bitmap(imOrg);
-            BitmapData data = bm.LockBits(
-                new Rectangle(0, 0, m_iW, m_iH),
-                ImageLockMode.ReadWrite,
-                PixelFormat.Format32bppArgb);
-            Marshal.Copy(data.Scan0, m_aData, 0, m_aData.Length);
-            bm.UnlockBits(data);
-        }
-
-        int CalcAdr(int x, int y, COL c)
-        {
-            return (y * m_iW + x) * COL_SIZE + (int)c;
-        }
-
-        public void SetPixel(int x, int y, Color col)
-        {
-            m_aData[CalcAdr(x, y, COL.cR)] = col.R;
-            m_aData[CalcAdr(x, y, COL.cG)] = col.G;
-            m_aData[CalcAdr(x, y, COL.cB)] = col.B;
-        }
-        public Color GetPixel(int x, int y)
-        {
-            return Color.FromArgb(
-                m_aData[CalcAdr(x, y, COL.cR)],
-                m_aData[CalcAdr(x, y, COL.cG)],
-                m_aData[CalcAdr(x, y, COL.cB)]);
-        }
-
-        public Bitmap GetBitmap()
-        {
-            Bitmap bmRet = new Bitmap(m_iW, m_iH);
-
-            BitmapData data = bmRet.LockBits(
-                new Rectangle(0, 0, m_iW, m_iH),
-                ImageLockMode.ReadWrite,
-                PixelFormat.Format32bppArgb);
-            Marshal.Copy(m_aData, 0, data.Scan0, m_aData.Length);
-            bmRet.UnlockBits(data);
-
-            return bmRet;
-        }
     }
 
     public class ImageLet
@@ -131,6 +42,13 @@ namespace WpfAppSample
         public Color col;
     }
 
+    public class ImgPath
+    {
+        public string[] asSrcImg;
+        public string sSrcDir;
+        public string sTgtImg;
+        public string sDstImg;
+    }
 
     // 通知内容
     public class ProgressInfo
@@ -201,9 +119,9 @@ namespace WpfAppSample
             // もし開かれているなら
             if (Result == CommonFileDialogResult.Ok)
             {
+                m_path.sSrcDir = Dialog.FileName;
                 m_path.asSrcImg = System.IO.Directory.GetFiles(
                     Dialog.FileName, "*.jpg", System.IO.SearchOption.TopDirectoryOnly);
-                m_path.sSrcDir = Path.GetDirectoryName(m_path.asSrcImg[0]);
 
                 TextBox_SecImgDir.Text = m_path.sSrcDir;
                 TextBlock_DrcImgCnt.Text = "有効画像枚数 : " + m_path.asSrcImg.Length.ToString("#,0") ;
