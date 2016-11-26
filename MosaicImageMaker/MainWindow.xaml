@@ -4,6 +4,7 @@
         Title="MainWindow" Height="352.333" Width="599.333">
     <StackPanel x:Name="LayoutRoot" Orientation="Vertical" Margin="0,0,2,3">
         <StackPanel Orientation="Horizontal">
+            <TextBlock Height="23" x:Name="TextBlock_TgtImgDir" Text="目標画像" HorizontalAlignment="Left" Margin="10,10,0,10" Width="75" />
             <TextBox Height="24" Name="TextBox_TgtImgDir" Width="533" HorizontalAlignment="Left"  Text="目標画像 ファイルパス を設定してください。" Margin="10,10,0,10" />
             <Button Content="..." Height="24" Width="23"   HorizontalAlignment="Left" Margin="10,10,0,10" Click="SetTgtPath_Click" />
         </StackPanel>

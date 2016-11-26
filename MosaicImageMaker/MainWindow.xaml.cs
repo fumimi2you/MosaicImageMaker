@@ -13,8 +13,9 @@ using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs; //CommonOpenFileDialog
 
 using System.Linq;  //  ランダムソート
-
 using System.Threading.Tasks;   // 並列処理
+
+using nsInifileUtils;
 
 namespace WpfAppSample
 {
@@ -149,13 +150,40 @@ namespace WpfAppSample
     /// </summary>
     public partial class MainWindow : Window
     {
+        InifileUtils m_iniUtl;
         ImgPath m_path;
 
         public MainWindow()
         {
             InitializeComponent();
 
+            m_iniUtl = new InifileUtils();
             m_path = new ImgPath();
+
+
+            m_path.sTgtImg = m_iniUtl.getValueString("Path", "TgtImg");
+            m_path.sSrcDir = m_iniUtl.getValueString("Path", "SrcDir");
+            m_path.sDstImg = m_iniUtl.getValueString("Path", "DstImg");
+
+            TextBox_TgtImgDir.Text = m_path.sTgtImg;
+            TextBox_SecImgDir.Text = m_path.sSrcDir;
+            TextBox_DstImgDir.Text = m_path.sDstImg;
+
+            if(m_path.sSrcDir != "")
+            {
+                m_path.asSrcImg = System.IO.Directory.GetFiles(
+                    m_path.sSrcDir, "*.jpg", System.IO.SearchOption.TopDirectoryOnly);
+                TextBox_SecImgDir.Text = m_path.sSrcDir;
+                TextBlock_DrcImgCnt.Text = "有効画像枚数 : " + m_path.asSrcImg.Length.ToString("#,0");
+            }
+        }
+
+        ~MainWindow()
+        {
+
+            m_iniUtl.setValue("Path", "TgtImg", m_path.sTgtImg);
+            m_iniUtl.setValue("Path", "SrcDir", m_path.sSrcDir);
+            m_iniUtl.setValue("Path", "DstImg", m_path.sDstImg);
         }
 
         private void SetSrcDir_Click(object sender, RoutedEventArgs e)
@@ -180,7 +208,6 @@ namespace WpfAppSample
                 TextBox_SecImgDir.Text = m_path.sSrcDir;
                 TextBlock_DrcImgCnt.Text = "有効画像枚数 : " + m_path.asSrcImg.Length.ToString("#,0") ;
             }
-
         }
 
         private void SetTgtPath_Click(object sender, RoutedEventArgs e)
