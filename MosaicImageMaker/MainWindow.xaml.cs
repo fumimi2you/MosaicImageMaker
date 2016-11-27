@@ -76,9 +76,9 @@ namespace MosaicImageMaker
         {
             if (sg == SG.set)
             {
-                TextBox_TgtImgDir.Text = m_path.sTgtImg;
-                TextBox_SecImgDir.Text = m_path.sSrcDir;
-                TextBox_DstImgDir.Text = m_path.sDstImg;
+                if (m_path.sTgtImg != "") { TextBox_TgtImgDir.Text = m_path.sTgtImg; }
+                if (m_path.sSrcDir != "") { TextBox_SecImgDir.Text = m_path.sSrcDir; }
+                if (m_path.sDstImg != "") { TextBox_DstImgDir.Text = m_path.sDstImg; }
             }
             else
             {
@@ -87,7 +87,10 @@ namespace MosaicImageMaker
                 m_path.sDstImg = TextBox_DstImgDir.Text;
             }
 
-            UpdateWindow_SecImgDir();
+            if (m_path.sSrcDir != "")
+            {
+                UpdateWindow_SecImgDir();
+            }
         }
 
         private void UpdateWindow_SecImgDir()
@@ -113,6 +116,74 @@ namespace MosaicImageMaker
             }
         }
 
+
+        private async void Button_Execute_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateWindow(SG.get);
+            UpdateIni(SG.set);
+
+            //  出力先にファイル出力可能か確認
+            try
+            {
+                System.IO.StreamWriter sw = new System.IO.StreamWriter(
+                    m_path.sDstImg, false, System.Text.Encoding.Unicode);
+                //TextBox1.Textの内容を書き込む
+                sw.Write("Test");
+                //閉じる
+                sw.Close();
+            }
+            catch(Exception ee)
+            {
+                MessageBox.Show("コレ、書けないかも↓↓\n" + m_path.sDstImg, "ムリぽ" );
+                return;
+            }
+
+
+            // Progressクラスのインスタンスを生成
+            var spProg1 = new Progress<int>(ShowProgress1);
+            var spProg2 = new Progress<int>(ShowProgress2);
+
+            progressBar1.Maximum = m_path.asSrcImg.Length;
+            progressBar1.Value = 0;
+
+            progressBar2.Maximum = DEF.PERCENT_MAX;
+            progressBar2.Value = 0;
+
+
+            //  実処理実行
+            await MosImgCore.Do(m_path, spProg1, spProg2);
+
+            if (progressBar2.Value == DEF.PERCENT_MAX)
+            {
+                TextBlock_Report.Text = "できたよー (⌒∇⌒)";
+            }
+            else
+            {
+                TextBlock_Report.Text = "なんか失敗したっぽい。";
+            }
+
+            GC.Collect();
+        }
+
+        /////////////////////////////////////////////////////////////////////////
+        // // 進捗を表示するメソッド（これはUIスレッドで呼び出される）
+        /////////////////////////////////////////////////////////////////////////
+        private void ShowProgress1(int iVal)
+        {
+            progressBar1.Value = iVal;
+            TextBlock_Report.Text = "まずは一通り素材画像を見てみるー : " + iVal.ToString() + "/" + progressBar1.Maximum + " [枚]";
+        }
+        private void ShowProgress2(int iVal)
+        {
+            progressBar2.Value = iVal;
+            TextBlock_Report.Text = "タイリングの組み合わせを考えてるー : " + iVal.ToString() + "/" + progressBar2.Maximum + " [％]";
+        }
+
+
+
+        /////////////////////////////////////////////////////////////////////////
+        // パスの選択ボタン
+        /////////////////////////////////////////////////////////////////////////
 
         private void SetTgtPath_Click(object sender, RoutedEventArgs e)
         {
@@ -160,49 +231,10 @@ namespace MosaicImageMaker
             }
         }
 
-        private async void Button_Execute_Click(object sender, RoutedEventArgs e)
-        {
-            UpdateWindow(SG.get);
-            UpdateIni(SG.set);
 
-
-            // Progressクラスのインスタンスを生成
-            var spProg1 = new Progress<int>(ShowProgress1);
-            var spProg2 = new Progress<int>(ShowProgress2);
-
-            progressBar1.Maximum = m_path.asSrcImg.Length;
-            progressBar1.Value = 0;
-
-            progressBar2.Maximum = DEF.PERCENT_MAX;
-            progressBar2.Value = 0;
-
-
-            //  実処理実行
-            await MosImgCore.Do(m_path, spProg1, spProg2);
-
-            if (progressBar2.Value == DEF.PERCENT_MAX)
-            {
-                TextBlock_Report.Text = "できたよー (⌒∇⌒)";
-            }
-            else
-            {
-                TextBlock_Report.Text = "なんか失敗したっぽい。";
-            }
-
-            GC.Collect();
-        }
-
-        // 進捗を表示するメソッド（これはUIスレッドで呼び出される）
-        private void ShowProgress1(int iVal)
-        {
-            progressBar1.Value = iVal;
-            TextBlock_Report.Text = "まずは一通り素材画像を見てみるー " + iVal.ToString() + "/" + progressBar1.Maximum + " [枚]";
-        }
-        private void ShowProgress2(int iVal)
-        {
-            progressBar2.Value = iVal;
-            TextBlock_Report.Text = "タイリングの組み合わせを考えてるー " + iVal.ToString() + "/" + progressBar2.Maximum + " [％]";
-        }
+        /////////////////////////////////////////////////////////////////////////
+        // パス直接変更のコントロール
+        /////////////////////////////////////////////////////////////////////////
 
         private void TextBox_TgtImgDir_LostFocus(object sender, RoutedEventArgs e)
         {
@@ -219,6 +251,74 @@ namespace MosaicImageMaker
         {
             UpdateWindow(SG.get);
 
+        }
+
+
+        /////////////////////////////////////////////////////////////////////////
+        // D&D のコントロール
+        /////////////////////////////////////////////////////////////////////////
+
+        private void TextBox_TgtImgDir_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop, true))
+            {
+                e.Effects = System.Windows.DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = System.Windows.DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void TextBox_TgtImgDir_Drop(object sender, DragEventArgs e)
+        {
+            var dropFiles = e.Data.GetData(System.Windows.DataFormats.FileDrop) as string[];
+            if (dropFiles == null) return;
+            TextBox_TgtImgDir.Text = dropFiles[0];
+            UpdateWindow(SG.get);
+        }
+
+        private void TextBox_SecImgDir_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop, true))
+            {
+                e.Effects = System.Windows.DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = System.Windows.DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void TextBox_SecImgDir_Drop(object sender, DragEventArgs e)
+        {
+            var dropFiles = e.Data.GetData(System.Windows.DataFormats.FileDrop) as string[];
+            if (dropFiles == null) return;
+            TextBox_SecImgDir.Text = dropFiles[0];
+            UpdateWindow(SG.get);
+        }
+
+        private void TextBox_DstImgDir_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(System.Windows.DataFormats.FileDrop, true))
+            {
+                e.Effects = System.Windows.DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = System.Windows.DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void TextBox_DstImgDir_Drop(object sender, DragEventArgs e)
+        {
+            var dropFiles = e.Data.GetData(System.Windows.DataFormats.FileDrop) as string[];
+            if (dropFiles == null) return;
+            TextBox_DstImgDir.Text = dropFiles[0];
+            UpdateWindow(SG.get);
         }
     }
 

@@ -7,27 +7,48 @@
             <Border BorderBrush="{x:Null}" Height="24">
                 <TextBlock x:Name="TextBlock_TgtImgDir" Width="120" Text="目標画像パス" VerticalAlignment="Center" Foreground="#FFB2C3FF" OpacityMask="#FFB2C3FF" TextDecorations="{x:Null}" FontFamily="Meiryo UI" FontSize="14" Margin="0,3"/>
             </Border>
-            <TextBox x:Name="TextBox_TgtImgDir" Width="500" HorizontalAlignment="Left"  Text="目標画像 ファイルパス を設定してください。" Margin="10,0,0,0" VerticalContentAlignment="Center" Background="#FFD1D1D1" SelectionBrush="White" FontFamily="Meiryo UI" LostFocus="TextBox_TgtImgDir_LostFocus" BorderBrush="#FFA6B5EB"/>
+            <TextBox x:Name="TextBox_TgtImgDir" Width="500" HorizontalAlignment="Left"  Text="目標画像 ファイルパス を設定してください。 ( ドラッグ &amp; ドロップ で大丈夫 )" Margin="10,0,0,0" VerticalContentAlignment="Center" Background="#FFD1D1D1" SelectionBrush="White" FontFamily="Meiryo UI" LostFocus="TextBox_TgtImgDir_LostFocus" BorderBrush="#FFA6B5EB" PreviewDragOver="TextBox_TgtImgDir_PreviewDragOver" PreviewDrop="TextBox_TgtImgDir_Drop"/>
             <Button Content="..." Width="32"   HorizontalAlignment="Left"  Click="SetTgtPath_Click" Height="32" VerticalAlignment="Bottom" Background="#FFECECEC" BorderBrush="#FFA6B5EB" Foreground="Black" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Height="32" Margin="10,10,10,10">
             <Border BorderBrush="{x:Null}" Height="24">
                 <TextBlock x:Name="TextBlock_SecImgDir" Width="120" Text="素材画像フォルダ" VerticalAlignment="Center" Foreground="#FFB2C3FF" OpacityMask="#FFB2C3FF" TextDecorations="{x:Null}" FontFamily="Meiryo UI" FontSize="14" Margin="0,3"/>
             </Border>
-            <TextBox Name="TextBox_SecImgDir" Width="500" HorizontalAlignment="Left"  Text="素材画像 格納フォルダ を設定してください。" Margin="10,0,0,0" VerticalContentAlignment="Center" Background="#FFD1D1D1" SelectionBrush="White" FontFamily="Meiryo UI" LostFocus="TextBox_SecImgDir_LostFocus" BorderBrush="#FFA6B5EB" />
+            <TextBox Name="TextBox_SecImgDir" Width="500" HorizontalAlignment="Left"  Text="素材画像 格納フォルダ を設定してください。 ( ドラッグ &amp; ドロップ で大丈夫 )" Margin="10,0,0,0" VerticalContentAlignment="Center" Background="#FFD1D1D1" SelectionBrush="White" FontFamily="Meiryo UI" LostFocus="TextBox_SecImgDir_LostFocus" BorderBrush="#FFA6B5EB" PreviewDragOver="TextBox_SecImgDir_PreviewDragOver" PreviewDrop="TextBox_SecImgDir_Drop" />
             <Button Content="..." Width="32"   HorizontalAlignment="Left"  Click="SetSrcDir_Click" Background="#FFECECEC" BorderBrush="#FFA6B5EB" Foreground="Black" />
         </StackPanel>
-        <TextBlock Height="24" x:Name="TextBlock_DrcImgCnt"  HorizontalAlignment="Left" Margin="150,0,0,0" Width="540" Text="素材画像は 100枚以上でお願いします。" Foreground="#FFFFF8B2" FontFamily="Meiryo UI"/>
+        <TextBlock Height="24" x:Name="TextBlock_DrcImgCnt"  HorizontalAlignment="Left" Margin="150,0,0,0" Width="540" Foreground="#FFFFF8B2" FontFamily="Meiryo UI"><Run Text="素材画像は 100枚以上"/><Run Text=" (出来れば10,000枚とか) "/><Run Text="が"/><Run Text="い"/><Run Text="いな..."/><Run/></TextBlock>
         <StackPanel Orientation="Horizontal" Height="32" Margin="10,10,10,10">
             <Border BorderBrush="{x:Null}" Height="32" OpacityMask="#FFB2C3FF">
                 <TextBlock x:Name="TextBlock_DstImgDir" Width="120" Text="出力画像パス" VerticalAlignment="Center" Foreground="#FFFFB2F4" TextDecorations="{x:Null}" FontFamily="Meiryo UI" FontSize="14" Margin="0,7"/>
             </Border>
-            <TextBox Name="TextBox_DstImgDir" Width="500" HorizontalAlignment="Left"  Text="出力画像 ファイルパス を設定してください。" Margin="10,0,0,0" VerticalContentAlignment="Center" Background="#FFD1D1D1" SelectionBrush="White" FontFamily="Meiryo UI" LostFocus="TextBox_DstImgDir_LostFocus" BorderBrush="#FFA6B5EB" />
+            <TextBox Name="TextBox_DstImgDir" Width="500" HorizontalAlignment="Left"  Text="出力画像 ファイルパス を設定してください。 ( ドラッグ &amp; ドロップ で大丈夫 )" Margin="10,0,0,0" VerticalContentAlignment="Center" Background="#FFD1D1D1" SelectionBrush="White" FontFamily="Meiryo UI" LostFocus="TextBox_DstImgDir_LostFocus" BorderBrush="#FFA6B5EB" PreviewDragOver="TextBox_DstImgDir_PreviewDragOver" PreviewDrop="TextBox_DstImgDir_Drop" />
             <Button Content="..." Width="32"   HorizontalAlignment="Left"  Click="SetDstPath_Click" Background="#FFECECEC" BorderBrush="#FFA6B5EB" Foreground="Black" />
         </StackPanel>
-        <Button Name="Button_Execute" Content="Execute" Height="50" Width="200" HorizontalAlignment="Center" Margin="20,20,10,20" Click="Button_Execute_Click" Background="#FFD0FFBA" BorderBrush="#FFA6B5EB" Foreground="Black" FontSize="24" FontFamily="Meiryo UI" FontWeight="Bold" />
-        <ProgressBar Height="20" x:Name="progressBar1"  VerticalAlignment="Top" Margin="10,0,10,10" BorderBrush="#FFA6B5EB" />
-        <ProgressBar Height="20" x:Name="progressBar2"  VerticalAlignment="Top" Margin="10,0,10,10" BorderBrush="#FFA6B5EB" />
+        <Button Name="Button_Execute" Content="Execute" Height="50" Width="200" HorizontalAlignment="Center" Margin="20,20,10,20" Click="Button_Execute_Click" BorderBrush="#FFA6B5EB" Foreground="Black" FontSize="24" FontFamily="Meiryo UI" FontWeight="Bold" >
+            <Button.Background>
+                <RadialGradientBrush>
+                    <GradientStop Color="#FFA0E499" Offset="1"/>
+                    <GradientStop Color="#FFD9FFD6"/>
+                </RadialGradientBrush>
+            </Button.Background>
+        </Button>
+        <ProgressBar Height="20" x:Name="progressBar1"  VerticalAlignment="Top" Margin="10,0,10,10" BorderBrush="#FFA6B5EB" Background="#FF004020" >
+            <ProgressBar.Foreground>
+                <LinearGradientBrush EndPoint="0.5,1" MappingMode="RelativeToBoundingBox" StartPoint="0.5,0">
+                    <GradientStop Color="#FF00FF80"/>
+                    <GradientStop Color="#FF008040" Offset="1"/>
+                </LinearGradientBrush>
+            </ProgressBar.Foreground>
+        </ProgressBar>
+        <ProgressBar Height="20" x:Name="progressBar2"  VerticalAlignment="Top" Margin="10,0,10,10" BorderBrush="#FFA6B5EB" Background="#FF004020" >
+            <ProgressBar.Foreground>
+                <LinearGradientBrush EndPoint="0.5,1" MappingMode="RelativeToBoundingBox" StartPoint="0.5,0">
+                    <GradientStop Color="#FF00FF80"/>
+                    <GradientStop Color="#FF008040" Offset="1"/>
+                </LinearGradientBrush>
+            </ProgressBar.Foreground>
+        </ProgressBar>
         <TextBlock Height="23" x:Name="TextBlock_Report" Text="進捗状況"  HorizontalAlignment="Left" Margin="10,0,0,10" Width="678" Foreground="#FFB9FFB2" OpacityMask="#FFB2C3FF" FontFamily="Meiryo UI" />
 
     </StackPanel>

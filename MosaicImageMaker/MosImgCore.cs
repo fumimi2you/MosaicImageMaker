@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Drawing;
 
 using System.Collections.Generic;   // Dictionary;
@@ -79,8 +80,8 @@ namespace MosaicImageMaker
                         {
                             int x = cx * DEF.LET_D + dx;
 
-                            //  値の取得
-                            imgOut.SetPixel(x, y, CommonUtils.ColorBlend(imgLet.bmData.GetPixel(dx, dy), 9, imgOut.GetPixel(x, y), 1));
+                            //  値の取得()
+                            imgOut.SetPixel(x, y, CommonUtils.ColorBlend(imgLet.bmData.GetPixel(dx, dy), 1, imgOut.GetPixel(x, y), 0));
                         }
                     });
 
@@ -127,7 +128,8 @@ namespace MosaicImageMaker
                 Image imgOg = null; 
                 try
                 {
-                    imgOg = Image.FromFile(sFile);
+                    FileStream fs = File.OpenRead(sFile);
+                    imgOg = Image.FromStream(fs, false,false);
                 }
                 catch (Exception e)
                 {
