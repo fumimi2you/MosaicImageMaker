@@ -17,7 +17,8 @@
             <TextBox Name="TextBox_SecImgDir" Width="500" HorizontalAlignment="Left"  Text="素材画像 格納フォルダ を設定してください。 ( ドラッグ &amp; ドロップ で大丈夫 )" Margin="10,0,0,0" VerticalContentAlignment="Center" Background="#FFD1D1D1" SelectionBrush="White" FontFamily="Meiryo UI" LostFocus="TextBox_SecImgDir_LostFocus" BorderBrush="#FFA6B5EB" PreviewDragOver="TextBox_SecImgDir_PreviewDragOver" PreviewDrop="TextBox_SecImgDir_Drop" />
             <Button Content="..." Width="32"   HorizontalAlignment="Left"  Click="SetSrcDir_Click" Background="#FFECECEC" BorderBrush="#FFA6B5EB" Foreground="Black" />
         </StackPanel>
-        <TextBlock Height="24" x:Name="TextBlock_DrcImgCnt"  HorizontalAlignment="Left" Margin="150,0,0,0" Width="540" Foreground="#FFFFF8B2" FontFamily="Meiryo UI"><Run Text="素材画像は 100枚以上"/><Run Text=" (出来れば10,000枚とか) "/><Run Text="が"/><Run Text="い"/><Run Text="いな..."/><Run/></TextBlock>
+        <CheckBox x:Name="CheckBox_SubDir" Content="サブフォルダの画像は使う？" IsChecked="True" Margin="140,0,0,0" Foreground="#FFFFF8A2" Click="CheckBox_SubDir_Click"/>
+        <TextBlock Height="24" x:Name="TextBlock_DrcImgCnt"  HorizontalAlignment="Left" Margin="160,0,0,0" Width="540" Foreground="#FFFFF8B2" FontFamily="Meiryo UI"><Run Text="素材画像は 100枚以上"/><Run Text=" (出来れば10,000枚とか) "/><Run Text="が"/><Run Text="い"/><Run Text="いな..."/><Run/></TextBlock>
         <StackPanel Orientation="Horizontal" Height="32" Margin="10,10,10,10">
             <Border BorderBrush="{x:Null}" Height="32" OpacityMask="#FFB2C3FF">
                 <TextBlock x:Name="TextBlock_DstImgDir" Width="120" Text="出力画像パス" VerticalAlignment="Center" Foreground="#FFFFB2F4" TextDecorations="{x:Null}" FontFamily="Meiryo UI" FontSize="14" Margin="0,7"/>

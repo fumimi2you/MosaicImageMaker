@@ -36,6 +36,7 @@ namespace MosaicImageMaker
     {
         InifileUtils m_iniUtl = null;
         ImgPath m_path = null;
+        bool m_bUseSubDir;
 
         enum SG { set, get };
 
@@ -63,12 +64,14 @@ namespace MosaicImageMaker
                 m_iniUtl.setValue("Path", "TgtImg", m_path.sTgtImg);
                 m_iniUtl.setValue("Path", "SrcDir", m_path.sSrcDir);
                 m_iniUtl.setValue("Path", "DstImg", m_path.sDstImg);
+                m_iniUtl.setValue("Check", "SubDir", m_bUseSubDir ? 1 : 0);
             }
             else
             {
                 m_path.sTgtImg = m_iniUtl.getValueString("Path", "TgtImg");
                 m_path.sSrcDir = m_iniUtl.getValueString("Path", "SrcDir");
                 m_path.sDstImg = m_iniUtl.getValueString("Path", "DstImg");
+                m_bUseSubDir = (m_iniUtl.getValueInt("Check", "SubDir") == 0) ? false : true;
             }
         }
 
@@ -79,12 +82,14 @@ namespace MosaicImageMaker
                 if (m_path.sTgtImg != "") { TextBox_TgtImgDir.Text = m_path.sTgtImg; }
                 if (m_path.sSrcDir != "") { TextBox_SecImgDir.Text = m_path.sSrcDir; }
                 if (m_path.sDstImg != "") { TextBox_DstImgDir.Text = m_path.sDstImg; }
+                CheckBox_SubDir.IsChecked = m_bUseSubDir;
             }
             else
             {
                 m_path.sTgtImg = TextBox_TgtImgDir.Text;
                 m_path.sSrcDir = TextBox_SecImgDir.Text;
                 m_path.sDstImg = TextBox_DstImgDir.Text;
+                m_bUseSubDir = (bool)CheckBox_SubDir.IsChecked;
             }
 
             if (m_path.sSrcDir != "")
@@ -97,9 +102,17 @@ namespace MosaicImageMaker
         {
             try
             {
-                m_path.asSrcImg = System.IO.Directory.GetFiles(
-                    m_path.sSrcDir, "*.jpg", System.IO.SearchOption.TopDirectoryOnly);
+                if (m_bUseSubDir) {
+                    m_path.asSrcImg = System.IO.Directory.GetFiles(
+                        m_path.sSrcDir, "*.jpg", System.IO.SearchOption.AllDirectories);
+                }
+                else
+                {
+                    m_path.asSrcImg = System.IO.Directory.GetFiles(
+                        m_path.sSrcDir, "*.jpg", System.IO.SearchOption.TopDirectoryOnly);
+                }
                 TextBox_SecImgDir.Text = m_path.sSrcDir;
+
                 if(m_path.asSrcImg.Length>= DEF.LET_IMG_MIN)
                 {
                     TextBlock_DrcImgCnt.Text = m_path.asSrcImg.Length.ToString("#,0") + "[枚] の画像が使えるっぽい。";
@@ -110,7 +123,7 @@ namespace MosaicImageMaker
                         + DEF.LET_IMG_MIN + "枚以上は画像欲しいかも？" ;
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 TextBlock_DrcImgCnt.Text = "";
             }
@@ -132,7 +145,7 @@ namespace MosaicImageMaker
                 //閉じる
                 sw.Close();
             }
-            catch(Exception ee)
+            catch(Exception)
             {
                 MessageBox.Show("コレ、書けないかも↓↓\n" + m_path.sDstImg, "ムリぽ" );
                 return;
@@ -151,15 +164,27 @@ namespace MosaicImageMaker
 
 
             //  実処理実行
-            await MosImgCore.Do(m_path, spProg1, spProg2);
+            MosImgCore.ECode edRet = await MosImgCore.Do(m_path, spProg1, spProg2);
 
-            if (progressBar2.Value == DEF.PERCENT_MAX)
+
+            if (edRet >= MosImgCore.ECode.Success)
             {
                 TextBlock_Report.Text = "できたよー (⌒∇⌒)";
             }
             else
             {
                 TextBlock_Report.Text = "なんか失敗したっぽい。";
+                switch (edRet)
+                {
+                    case MosImgCore.ECode.Er_ReadTgeImg:
+                        MessageBox.Show("コレ、読めないかも↓↓\n" + m_path.sTgtImg,"ムリぽ");
+                        break;
+                    case MosImgCore.ECode.Er_LackSrcImg:
+                        MessageBox.Show("素材画像を確認したけど、実際に使える画像が少なすぎるかも...","ムリぽ");
+                        break;
+                    default:
+                        break;
+                }
             }
 
             GC.Collect();
@@ -255,6 +280,13 @@ namespace MosaicImageMaker
 
 
         /////////////////////////////////////////////////////////////////////////
+        // チェック状態の変更
+        private void CheckBox_SubDir_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateWindow(SG.get);
+        }
+
+        /////////////////////////////////////////////////////////////////////////
         // D&D のコントロール
         /////////////////////////////////////////////////////////////////////////
 
@@ -320,6 +352,7 @@ namespace MosaicImageMaker
             TextBox_DstImgDir.Text = dropFiles[0];
             UpdateWindow(SG.get);
         }
-    }
+
+   }
 
 }

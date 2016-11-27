@@ -25,6 +25,7 @@ namespace MosaicImageMaker
         public const int LET_D = 100;
         
         public const int LET_IMG_MIN = 100;
+        public const int LET_IMG_MIN_MIN = 2;
         public const int FIT_DELTA = 2;
         public const int SEEK_MAX = 4096;
 

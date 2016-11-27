@@ -13,10 +13,18 @@ namespace MosaicImageMaker
 {
     class MosImgCore
     {
-        //  実処理
-        public static async Task<int> Do(ImgPath path, IProgress<int> spProg1, IProgress<int> spProg2)
+        public enum ECode
         {
-            Func<int> Job = () =>
+            Success = 0,
+            Er_Unknown = -1,
+            Er_ReadTgeImg = -2,
+            Er_LackSrcImg = -3,
+        }
+
+        //  実処理
+        public static async Task<ECode> Do(ImgPath path, IProgress<int> spProg1, IProgress<int> spProg2)
+        {
+            Func<ECode> Job = () =>
             {
                 //  ターゲット画像の読み込み
                 Image imgTg = null;
@@ -24,20 +32,19 @@ namespace MosaicImageMaker
                 {
                     imgTg = Image.FromFile(path.sTgtImg);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    MessageBox.Show("コレ、読めないかも↓↓\n" + path.sTgtImg, 
-                        "ムリぽ",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
-                    return 0;
+                    return ECode.Er_ReadTgeImg;
                 }
                 Bitmap bmTg = new Bitmap(imgTg);
 
 
                 //  LetImgの配列を構築
                 List<ImageLet> aImgLet = MakeImageLets(path.asSrcImg, spProg1);
-
+                if (aImgLet.Count < DEF.SQR(DEF.LET_IMG_MIN_MIN))
+                {
+                    return ECode.Er_LackSrcImg;
+                }
 
                 //  出力先の構築(取り敢えずオリジナル画像をリサイズして突っ込む)
                 int iCelL = (int)Math.Sqrt(aImgLet.Count / 2);
@@ -45,13 +52,13 @@ namespace MosaicImageMaker
                 int iCelH = 0;
                 if (imgTg.Width > imgTg.Height)
                 {
-                    iCelW = iCelL;
-                    iCelH = iCelW * imgTg.Height / imgTg.Width;
+                    iCelW = Math.Max(DEF.LET_IMG_MIN_MIN, iCelL);
+                    iCelH = Math.Max(DEF.LET_IMG_MIN_MIN, iCelW * imgTg.Height / imgTg.Width);
                 }
                 else
                 {
-                    iCelH = iCelL;
-                    iCelW = iCelH * imgTg.Width / imgTg.Height;
+                    iCelH = Math.Max(DEF.LET_IMG_MIN_MIN, iCelL);
+                    iCelW = Math.Max(DEF.LET_IMG_MIN_MIN, iCelH * imgTg.Width / imgTg.Height);
                 }
                 Bitmap bmTmp = new Bitmap(bmTg, DEF.LET_D * iCelW, DEF.LET_D * iCelH);
                 UMImage imgOut = new UMImage(bmTmp);
@@ -95,7 +102,7 @@ namespace MosaicImageMaker
                     }
 
                     //  プログレス処理
-                    spProg2.Report((++iProg) * 100 / (iCelW * iCelH));
+                    spProg2.Report((++iProg) * DEF.PERCENT_MAX / (iCelW * iCelH));
                 }
 
                 //  ファイルを出力して開く
@@ -108,7 +115,7 @@ namespace MosaicImageMaker
                 bmTg.Dispose();
                 bmOut.Dispose();
 
-                return 0;
+                return ECode.Success;
             };
 
             return await Task.Run(Job);
@@ -130,30 +137,30 @@ namespace MosaicImageMaker
                 {
                     FileStream fs = File.OpenRead(sFile);
                     imgOg = Image.FromStream(fs, false,false);
+
+                    // サムネイルの取得
+                    Image imgTn = imgOg.GetThumbnailImage(DEF.TH_W, DEF.TH_H, delegate { return false; }, IntPtr.Zero);
+
+                    //  サムネイルを処理
+                    ImageLet imgLet = new ImageLet();
+                    if (MakeImageLet(imgTn, imgLet))
+                    {
+                        lock (thisLock)
+                        {
+                            //  辞書に保存
+                            lock (aImgLet) aImgLet.Add(imgLet);
+                            spProg.Report(++iProc);
+                        }
+                    }
+
+                    //  お片付け
+                    imgOg.Dispose();
+                    imgTn.Dispose();
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     // ここでの失敗はスルーする
                 }
-
-                // サムネイルの取得
-                Image imgTn = imgOg.GetThumbnailImage(DEF.TH_W, DEF.TH_H, delegate { return false; }, IntPtr.Zero);
-
-                //  サムネイルを処理
-                ImageLet imgLet = new ImageLet();
-                if (MakeImageLet(imgTn, imgLet))
-                {
-                    lock (thisLock)
-                    {
-                        //  辞書に保存
-                        lock (aImgLet) aImgLet.Add(imgLet);
-                        spProg.Report(++iProc);
-                    }
-                }
-
-                //  お片付け
-                imgOg.Dispose();
-                imgTn.Dispose();
             });
 
             return aImgLet;
