@@ -7,20 +7,20 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MosaicImageMaker", "MosaicI
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
-		Release|Any CPU = Release|Any CPU
+		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B10295EC-5C06-417D-8328-F914F337688A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B10295EC-5C06-417D-8328-F914F337688A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B10295EC-5C06-417D-8328-F914F337688A}.Debug|x64.ActiveCfg = Debug|x64
 		{B10295EC-5C06-417D-8328-F914F337688A}.Debug|x64.Build.0 = Debug|x64
-		{B10295EC-5C06-417D-8328-F914F337688A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B10295EC-5C06-417D-8328-F914F337688A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B10295EC-5C06-417D-8328-F914F337688A}.Debug|x86.ActiveCfg = Debug|x86
+		{B10295EC-5C06-417D-8328-F914F337688A}.Debug|x86.Build.0 = Debug|x86
 		{B10295EC-5C06-417D-8328-F914F337688A}.Release|x64.ActiveCfg = Release|x64
 		{B10295EC-5C06-417D-8328-F914F337688A}.Release|x64.Build.0 = Release|x64
+		{B10295EC-5C06-417D-8328-F914F337688A}.Release|x86.ActiveCfg = Release|x86
+		{B10295EC-5C06-417D-8328-F914F337688A}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

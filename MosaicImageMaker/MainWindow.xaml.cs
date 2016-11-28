@@ -215,7 +215,10 @@ namespace MosaicImageMaker
             var dialog = new OpenFileDialog();
             dialog.Title = "目標画像ファイルを開く";
             dialog.Filter = "JPEGファイル(*.jpg)|*.jpg";
-            dialog.InitialDirectory = Path.GetDirectoryName(m_path.sTgtImg);
+            if (System.IO.Path.IsPathRooted(m_path.sTgtImg))
+            {
+                dialog.InitialDirectory = Path.GetDirectoryName(m_path.sTgtImg);
+            }
             if (dialog.ShowDialog() == true)
             {
                 m_path.sTgtImg = dialog.FileName;
@@ -232,7 +235,10 @@ namespace MosaicImageMaker
             Dialog.EnsureReadOnly = false;
             Dialog.AllowNonFileSystemItems = false;
             // パス指定
-            Dialog.DefaultDirectory = m_path.sSrcDir;
+            if (System.IO.Path.IsPathRooted(m_path.sSrcDir))
+            {
+                Dialog.DefaultDirectory = m_path.sSrcDir;
+            }
             // 開く
             var Result = Dialog.ShowDialog();
             // もし開かれているなら
@@ -248,7 +254,10 @@ namespace MosaicImageMaker
             var dialog = new SaveFileDialog();
             dialog.Title = "主力画像ファイルを保存";
             dialog.Filter = "JPEGファイル(*.jpg)|*.jpg";
-            dialog.InitialDirectory = Path.GetDirectoryName(m_path.sDstImg);
+            if (System.IO.Path.IsPathRooted(m_path.sDstImg))
+            {
+                dialog.InitialDirectory = Path.GetDirectoryName(m_path.sDstImg);
+            }
             if (dialog.ShowDialog() == true)
             {
                 m_path.sDstImg = dialog.FileName;
