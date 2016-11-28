@@ -164,12 +164,13 @@ namespace MosaicImageMaker
 
 
             //  実処理実行
-            MosImgCore.ECode edRet = await MosImgCore.Do(m_path, spProg1, spProg2);
+            CoreResult coreResult = new CoreResult();
+            MosImgCore.ECode edRet = await MosImgCore.Do(m_path, coreResult, spProg1, spProg2);
 
 
             if (edRet >= MosImgCore.ECode.Success)
             {
-                TextBlock_Report.Text = "できたよー (⌒∇⌒)";
+                TextBlock_Report.Text = "できたよー (⌒∇⌒) : 平均残差 = " + (int)Math.Sqrt(coreResult.dDeltaAve) + ", 最大残差 = " + (int)Math.Sqrt(coreResult.dDeltaMax);
             }
             else
             {
@@ -235,10 +236,7 @@ namespace MosaicImageMaker
             Dialog.EnsureReadOnly = false;
             Dialog.AllowNonFileSystemItems = false;
             // パス指定
-            if (System.IO.Path.IsPathRooted(m_path.sSrcDir))
-            {
-                Dialog.DefaultDirectory = m_path.sSrcDir;
-            }
+            Dialog.DefaultDirectory = m_path.sSrcDir;
             // 開く
             var Result = Dialog.ShowDialog();
             // もし開かれているなら

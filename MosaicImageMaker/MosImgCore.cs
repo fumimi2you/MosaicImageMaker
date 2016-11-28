@@ -11,6 +11,12 @@ using System.Windows.Forms;
 
 namespace MosaicImageMaker
 {
+    class CoreResult
+    {
+        public double dDeltaAve;
+        public double dDeltaMax;
+    }
+
     class MosImgCore
     {
         public enum ECode
@@ -22,7 +28,7 @@ namespace MosaicImageMaker
         }
 
         //  実処理
-        public static async Task<ECode> Do(ImgPath path, IProgress<int> spProg1, IProgress<int> spProg2)
+        public static async Task<ECode> Do(ImgPath path, CoreResult coreResult, IProgress<int> spProg1, IProgress<int> spProg2)
         {
             Func<ECode> Job = () =>
             {
@@ -67,6 +73,10 @@ namespace MosaicImageMaker
                 //  ターゲット画像Celの配列作成
                 List<ImageCel> aImgCel = MakeImageCels(imgTg, iCelW, iCelH);
 
+                //  残差計算の処理
+                double dDeltaSum = 0;
+                double dDeltaMax = 0;
+
                 //  モザイク処理
                 int iProg = 0;
                 foreach (ImageCel imgCel in aImgCel)
@@ -75,8 +85,12 @@ namespace MosaicImageMaker
                     int cx = (int)imgCel.pt.X;
 
                     //  最も近いimgLetを選択
-                    int iSel = SelectImageLet(imgCel.aCol, aImgLet);
+                    double dDelta = 0;
+                    int iSel = SelectImageLet(imgCel.aCol, aImgLet, out dDelta);
                     ImageLet imgLet = aImgLet[iSel];
+
+                    dDeltaSum += dDelta;
+                    dDeltaMax = Math.Max(dDelta, dDeltaMax);
 
                     //for (int dy = 0; dy < DEF.LET_D; dy++)
                     Parallel.For(0, DEF.LET_D, dy =>
@@ -104,6 +118,10 @@ namespace MosaicImageMaker
                     //  プログレス処理
                     spProg2.Report((++iProg) * DEF.PERCENT_MAX / (iCelW * iCelH));
                 }
+
+                coreResult.dDeltaAve = dDeltaSum / aImgCel.Count;
+                coreResult.dDeltaMax = dDeltaMax;
+
 
                 //  ファイルを出力して開く
                 Bitmap bmOut = imgOut.GetBitmap();
@@ -259,7 +277,7 @@ namespace MosaicImageMaker
             return true;
         }
 
-        public static int SelectImageLet(Color[] aCol, List<ImageLet> aImgLet)
+        public static int SelectImageLet(Color[] aCol, List<ImageLet> aImgLet, out double dDelta)
         {
             int iRet = 0;
 
@@ -293,6 +311,7 @@ namespace MosaicImageMaker
                 }
             });
 
+            dDelta = dstMin;
             return iRet;
         }
     }
