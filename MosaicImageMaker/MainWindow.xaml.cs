@@ -1,19 +1,69 @@
-﻿using System;
-using System.Windows;
-using System.IO;
-
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs; //CommonOpenFileDialog
+using System;
+using System.Windows;
 
 
 namespace MosaicImageMaker
 {
     public class ImgPath
     {
-        public string[] asSrcImg;
-        public string sSrcDir;
-        public string sTgtImg;
-        public string sDstImg;
+        private string[] asSrcImg;
+        private string sSrcDir;
+        private string sTgtImg;
+        private string sDstImg;
+
+        public string[] AsSrcImg
+        {
+            get
+            {
+                return asSrcImg;
+            }
+
+            set
+            {
+                asSrcImg = value;
+            }
+        }
+
+        public string SSrcDir
+        {
+            get
+            {
+                return sSrcDir;
+            }
+
+            set
+            {
+                sSrcDir = value;
+            }
+        }
+
+        public string STgtImg
+        {
+            get
+            {
+                return sTgtImg;
+            }
+
+            set
+            {
+                sTgtImg = value;
+            }
+        }
+
+        public string SDstImg
+        {
+            get
+            {
+                return sDstImg;
+            }
+
+            set
+            {
+                sDstImg = value;
+            }
+        }
     }
 
     // 通知内容
@@ -38,14 +88,53 @@ namespace MosaicImageMaker
         ImgPath m_path = null;
         bool m_bUseSubDir;
 
+        internal InifileUtils IniUtl
+        {
+            get
+            {
+                return m_iniUtl;
+            }
+
+            set
+            {
+                m_iniUtl = value;
+            }
+        }
+
+        public ImgPath Path
+        {
+            get
+            {
+                return m_path;
+            }
+
+            set
+            {
+                m_path = value;
+            }
+        }
+
+        public bool BUseSubDir
+        {
+            get
+            {
+                return m_bUseSubDir;
+            }
+
+            set
+            {
+                m_bUseSubDir = value;
+            }
+        }
+
         enum SG { set, get };
 
         public MainWindow()
         {
             InitializeComponent();
 
-            m_iniUtl = new InifileUtils();
-            m_path = new ImgPath();
+            IniUtl = new InifileUtils();
+            Path = new ImgPath();
 
             UpdateIni(SG.get);
             UpdateWindow(SG.set);
@@ -61,17 +150,17 @@ namespace MosaicImageMaker
         {
             if (sg==SG.set)
             {
-                m_iniUtl.setValue("Path", "TgtImg", m_path.sTgtImg);
-                m_iniUtl.setValue("Path", "SrcDir", m_path.sSrcDir);
-                m_iniUtl.setValue("Path", "DstImg", m_path.sDstImg);
-                m_iniUtl.setValue("Check", "SubDir", m_bUseSubDir ? 1 : 0);
+                IniUtl.setValue("Path", "TgtImg", Path.STgtImg);
+                IniUtl.setValue("Path", "SrcDir", Path.SSrcDir);
+                IniUtl.setValue("Path", "DstImg", Path.SDstImg);
+                IniUtl.setValue("Check", "SubDir", BUseSubDir ? 1 : 0);
             }
             else
             {
-                m_path.sTgtImg = m_iniUtl.getValueString("Path", "TgtImg");
-                m_path.sSrcDir = m_iniUtl.getValueString("Path", "SrcDir");
-                m_path.sDstImg = m_iniUtl.getValueString("Path", "DstImg");
-                m_bUseSubDir = (m_iniUtl.getValueInt("Check", "SubDir") == 0) ? false : true;
+                Path.STgtImg = IniUtl.getValueString("Path", "TgtImg");
+                Path.SSrcDir = IniUtl.getValueString("Path", "SrcDir");
+                Path.SDstImg = IniUtl.getValueString("Path", "DstImg");
+                BUseSubDir = (IniUtl.getValueInt("Check", "SubDir") == 0) ? false : true;
             }
         }
 
@@ -79,20 +168,20 @@ namespace MosaicImageMaker
         {
             if (sg == SG.set)
             {
-                if (m_path.sTgtImg != "") { TextBox_TgtImgDir.Text = m_path.sTgtImg; }
-                if (m_path.sSrcDir != "") { TextBox_SecImgDir.Text = m_path.sSrcDir; }
-                if (m_path.sDstImg != "") { TextBox_DstImgDir.Text = m_path.sDstImg; }
-                CheckBox_SubDir.IsChecked = m_bUseSubDir;
+                if (Path.STgtImg != "") { TextBox_TgtImgDir.Text = Path.STgtImg; }
+                if (Path.SSrcDir != "") { TextBox_SecImgDir.Text = Path.SSrcDir; }
+                if (Path.SDstImg != "") { TextBox_DstImgDir.Text = Path.SDstImg; }
+                CheckBox_SubDir.IsChecked = BUseSubDir;
             }
             else
             {
-                m_path.sTgtImg = TextBox_TgtImgDir.Text;
-                m_path.sSrcDir = TextBox_SecImgDir.Text;
-                m_path.sDstImg = TextBox_DstImgDir.Text;
-                m_bUseSubDir = (bool)CheckBox_SubDir.IsChecked;
+                Path.STgtImg = TextBox_TgtImgDir.Text;
+                Path.SSrcDir = TextBox_SecImgDir.Text;
+                Path.SDstImg = TextBox_DstImgDir.Text;
+                BUseSubDir = (bool)CheckBox_SubDir.IsChecked;
             }
 
-            if (m_path.sSrcDir != "")
+            if (Path.SSrcDir != "")
             {
                 UpdateWindow_SecImgDir();
             }
@@ -102,24 +191,24 @@ namespace MosaicImageMaker
         {
             try
             {
-                if (m_bUseSubDir) {
-                    m_path.asSrcImg = System.IO.Directory.GetFiles(
-                        m_path.sSrcDir, "*.jpg", System.IO.SearchOption.AllDirectories);
+                if (BUseSubDir) {
+                    Path.AsSrcImg = System.IO.Directory.GetFiles(
+                        Path.SSrcDir, "*.jpg", System.IO.SearchOption.AllDirectories);
                 }
                 else
                 {
-                    m_path.asSrcImg = System.IO.Directory.GetFiles(
-                        m_path.sSrcDir, "*.jpg", System.IO.SearchOption.TopDirectoryOnly);
+                    Path.AsSrcImg = System.IO.Directory.GetFiles(
+                        Path.SSrcDir, "*.jpg", System.IO.SearchOption.TopDirectoryOnly);
                 }
-                TextBox_SecImgDir.Text = m_path.sSrcDir;
+                TextBox_SecImgDir.Text = Path.SSrcDir;
 
-                if(m_path.asSrcImg.Length>= DEF.LET_IMG_MIN)
+                if(Path.AsSrcImg.Length>= DEF.LET_IMG_MIN)
                 {
-                    TextBlock_DrcImgCnt.Text = m_path.asSrcImg.Length.ToString("#,0") + "[枚] の画像が使えるっぽい。";
+                    TextBlock_DrcImgCnt.Text = Path.AsSrcImg.Length.ToString("#,0") + "[枚] の画像が使えるっぽい。";
                 }
                 else
                 {
-                    TextBlock_DrcImgCnt.Text = m_path.asSrcImg.Length.ToString("#,0") + "[枚] 画像があるけど..."
+                    TextBlock_DrcImgCnt.Text = Path.AsSrcImg.Length.ToString("#,0") + "[枚] 画像があるけど..."
                         + DEF.LET_IMG_MIN + "枚以上は画像欲しいかも？" ;
                 }
             }
@@ -139,7 +228,7 @@ namespace MosaicImageMaker
             try
             {
                 System.IO.StreamWriter sw = new System.IO.StreamWriter(
-                    m_path.sDstImg, false, System.Text.Encoding.Unicode);
+                    Path.SDstImg, false, System.Text.Encoding.Unicode);
                 //TextBox1.Textの内容を書き込む
                 sw.Write("Test");
                 //閉じる
@@ -147,7 +236,7 @@ namespace MosaicImageMaker
             }
             catch(Exception)
             {
-                MessageBox.Show("コレ、書けないかも↓↓\n" + m_path.sDstImg, "ムリぽ" );
+                MessageBox.Show("コレ、書けないかも↓↓\n" + Path.SDstImg, "ムリぽ" );
                 return;
             }
 
@@ -156,7 +245,7 @@ namespace MosaicImageMaker
             var spProg1 = new Progress<int>(ShowProgress1);
             var spProg2 = new Progress<int>(ShowProgress2);
 
-            progressBar1.Maximum = m_path.asSrcImg.Length;
+            progressBar1.Maximum = Path.AsSrcImg.Length;
             progressBar1.Value = 0;
 
             progressBar2.Maximum = DEF.PERCENT_MAX;
@@ -165,7 +254,7 @@ namespace MosaicImageMaker
 
             //  実処理実行
             CoreResult coreResult = new CoreResult();
-            MosImgCore.ECode edRet = await MosImgCore.Do(m_path, coreResult, spProg1, spProg2);
+            MosImgCore.ECode edRet = await MosImgCore.Do(Path, coreResult, spProg1, spProg2);
 
 
             if (edRet >= MosImgCore.ECode.Success)
@@ -178,7 +267,7 @@ namespace MosaicImageMaker
                 switch (edRet)
                 {
                     case MosImgCore.ECode.Er_ReadTgeImg:
-                        MessageBox.Show("コレ、読めないかも↓↓\n" + m_path.sTgtImg,"ムリぽ");
+                        MessageBox.Show("コレ、読めないかも↓↓\n" + Path.STgtImg,"ムリぽ");
                         break;
                     case MosImgCore.ECode.Er_LackSrcImg:
                         MessageBox.Show("素材画像を確認したけど、実際に使える画像が少なすぎるかも...","ムリぽ");
@@ -216,13 +305,13 @@ namespace MosaicImageMaker
             var dialog = new OpenFileDialog();
             dialog.Title = "目標画像ファイルを開く";
             dialog.Filter = "JPEGファイル(*.jpg)|*.jpg";
-            if (System.IO.Path.IsPathRooted(m_path.sTgtImg))
+            if (System.IO.Path.IsPathRooted(Path.STgtImg))
             {
-                dialog.InitialDirectory = Path.GetDirectoryName(m_path.sTgtImg);
+                dialog.InitialDirectory = System.IO.Path.GetDirectoryName(Path.STgtImg);
             }
             if (dialog.ShowDialog() == true)
             {
-                m_path.sTgtImg = dialog.FileName;
+                Path.STgtImg = dialog.FileName;
                 UpdateWindow(SG.set);
             }
         }
@@ -236,13 +325,13 @@ namespace MosaicImageMaker
             Dialog.EnsureReadOnly = false;
             Dialog.AllowNonFileSystemItems = false;
             // パス指定
-            Dialog.DefaultDirectory = m_path.sSrcDir;
+            Dialog.DefaultDirectory = Path.SSrcDir;
             // 開く
             var Result = Dialog.ShowDialog();
             // もし開かれているなら
             if (Result == CommonFileDialogResult.Ok)
             {
-                m_path.sSrcDir = Dialog.FileName;
+                Path.SSrcDir = Dialog.FileName;
                 UpdateWindow(SG.set);
             }
         }
@@ -252,13 +341,13 @@ namespace MosaicImageMaker
             var dialog = new SaveFileDialog();
             dialog.Title = "主力画像ファイルを保存";
             dialog.Filter = "JPEGファイル(*.jpg)|*.jpg";
-            if (System.IO.Path.IsPathRooted(m_path.sDstImg))
+            if (System.IO.Path.IsPathRooted(Path.SDstImg))
             {
-                dialog.InitialDirectory = Path.GetDirectoryName(m_path.sDstImg);
+                dialog.InitialDirectory = System.IO.Path.GetDirectoryName(Path.SDstImg);
             }
             if (dialog.ShowDialog() == true)
             {
-                m_path.sDstImg = dialog.FileName;
+                Path.SDstImg = dialog.FileName;
                 UpdateWindow(SG.set);
             }
         }

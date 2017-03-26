@@ -1,20 +1,17 @@
 ﻿using System;
-using System.IO;
-using System.Drawing;
-
 using System.Collections.Generic;   // Dictionary;
-
+using System.Drawing;
+using System.IO;
 using System.Linq;  //  ランダムソート
 using System.Threading.Tasks;   // 並列処理
 
-using System.Windows.Forms;
 
 namespace MosaicImageMaker
 {
     class CoreResult
     {
-        public double dDeltaAve;
-        public double dDeltaMax;
+        public double dDeltaAve { get; set; }
+        public double dDeltaMax { get; set; }
     }
 
     class MosImgCore
@@ -36,7 +33,7 @@ namespace MosaicImageMaker
                 Image imgTg = null;
                 try
                 {
-                    imgTg = Image.FromFile(path.sTgtImg);
+                    imgTg = Image.FromFile(path.STgtImg);
                 }
                 catch (Exception)
                 {
@@ -46,28 +43,17 @@ namespace MosaicImageMaker
 
 
                 //  LetImgの配列を構築
-                List<ImageLet> aImgLet = MakeImageLets(path.asSrcImg, spProg1);
+                List<ImageLet> aImgLet = MakeImageLets(path.AsSrcImg, spProg1);
                 if (aImgLet.Count < DEF.SQR(DEF.LET_IMG_MIN_MIN))
                 {
                     return ECode.Er_LackSrcImg;
                 }
 
                 //  出力先の構築(取り敢えずオリジナル画像をリサイズして突っ込む)
-                int iCelL = (int)Math.Sqrt(aImgLet.Count / 2);
-                int iCelW = 0;
-                int iCelH = 0;
-                if (imgTg.Width > imgTg.Height)
-                {
-                    iCelW = Math.Max(DEF.LET_IMG_MIN_MIN, iCelL);
-                    iCelH = Math.Max(DEF.LET_IMG_MIN_MIN, iCelW * imgTg.Height / imgTg.Width);
-                }
-                else
-                {
-                    iCelH = Math.Max(DEF.LET_IMG_MIN_MIN, iCelL);
-                    iCelW = Math.Max(DEF.LET_IMG_MIN_MIN, iCelH * imgTg.Width / imgTg.Height);
-                }
-                Bitmap bmTmp = new Bitmap(bmTg, DEF.LET_D * iCelW, DEF.LET_D * iCelH);
-                UMImage imgOut = new UMImage(bmTmp);
+                int iCelW, iCelH;
+                CalcCelSize(imgTg, aImgLet, out iCelW, out iCelH);
+                var bmTmp = new Bitmap(bmTg, DEF.LET_D * iCelW, DEF.LET_D * iCelH);
+                var imgOut = new UMImage(bmTmp);
                 bmTmp.Dispose();
 
                 //  ターゲット画像Celの配列作成
@@ -124,19 +110,37 @@ namespace MosaicImageMaker
 
 
                 //  ファイルを出力して開く
-                Bitmap bmOut = imgOut.GetBitmap();
-                bmOut.Save(path.sDstImg, System.Drawing.Imaging.ImageFormat.Jpeg);
-                System.Diagnostics.Process.Start(path.sDstImg);
+                using (Bitmap bmOut = imgOut.GetBitmap())
+                {
+                    bmOut.Save(path.SDstImg, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    System.Diagnostics.Process.Start(path.SDstImg);
+                }
 
                 //  お片付け
                 imgTg.Dispose();
                 bmTg.Dispose();
-                bmOut.Dispose();
 
                 return ECode.Success;
             };
 
             return await Task.Run(Job);
+        }
+
+        private static void CalcCelSize(Image imgTg, List<ImageLet> aImgLet, out int iCelW, out int iCelH)
+        {
+            int iCelL = (int)Math.Sqrt(aImgLet.Count / 2);
+            iCelW = 0;
+            iCelH = 0;
+            if (imgTg.Width > imgTg.Height)
+            {
+                iCelW = Math.Max(DEF.LET_IMG_MIN_MIN, iCelL);
+                iCelH = Math.Max(DEF.LET_IMG_MIN_MIN, iCelW * imgTg.Height / imgTg.Width);
+            }
+            else
+            {
+                iCelH = Math.Max(DEF.LET_IMG_MIN_MIN, iCelL);
+                iCelW = Math.Max(DEF.LET_IMG_MIN_MIN, iCelH * imgTg.Width / imgTg.Height);
+            }
         }
 
         // 素材画像のImageLet
@@ -149,31 +153,25 @@ namespace MosaicImageMaker
             int iProc = 0;
             Parallel.ForEach(aFile, sFile =>
             {
-                // 画像オブジェクトの作成
-                Image imgOg = null; 
                 try
                 {
-                    FileStream fs = File.OpenRead(sFile);
-                    imgOg = Image.FromStream(fs, false,false);
-
-                    // サムネイルの取得
-                    Image imgTn = imgOg.GetThumbnailImage(DEF.TH_W, DEF.TH_H, delegate { return false; }, IntPtr.Zero);
-
-                    //  サムネイルを処理
-                    ImageLet imgLet = new ImageLet();
-                    if (MakeImageLet(imgTn, imgLet))
+                    // 画像オブジェクトの作成とサムネ取得
+                    using (var fs = File.OpenRead(sFile))
+                    using (var imgOg = Image.FromStream(fs, false, false))
+                    using (var imgTn = imgOg.GetThumbnailImage(DEF.TH_W, DEF.TH_H, delegate { return false; }, IntPtr.Zero))
                     {
-                        lock (thisLock)
+                        //  サムネイルを処理
+                        ImageLet imgLet = new ImageLet();
+                        if (MakeImageLet(imgTn, imgLet))
                         {
-                            //  辞書に保存
-                            lock (aImgLet) aImgLet.Add(imgLet);
-                            spProg.Report(++iProc);
+                            lock (thisLock)
+                            {
+                                //  辞書に保存
+                                lock (aImgLet) aImgLet.Add(imgLet);
+                                spProg.Report(++iProc);
+                            }
                         }
                     }
-
-                    //  お片付け
-                    imgOg.Dispose();
-                    imgTn.Dispose();
                 }
                 catch (Exception)
                 {
@@ -187,34 +185,33 @@ namespace MosaicImageMaker
         // ターゲット画像のImageCel
         public static List<ImageCel> MakeImageCels(Image imgOg, int iCelW, int iCelH)
         {
+            List<ImageCel> ptTmp = new List<ImageCel>();
+
             // サムネイルの取得
-            Image imgTn = imgOg.GetThumbnailImage(iCelW*DEF.FIT_DELTA, iCelH*DEF.FIT_DELTA, delegate { return false; }, IntPtr.Zero);
+            var imgTn = imgOg.GetThumbnailImage(iCelW * DEF.FIT_DELTA, iCelH * DEF.FIT_DELTA, delegate { return false; }, IntPtr.Zero);
 
             //  ビットマップに変換
-            Bitmap bmTn = new Bitmap(imgTn);
-
-            //  セルの作成
-            List<ImageCel> ptTmp = new List<ImageCel>();
-            for (int cy = 0; cy < imgTn.Height; cy+=DEF.FIT_DELTA)
+            using (var bmTn = new Bitmap(imgTn))
             {
-                for (int cx = 0; cx < imgTn.Width; cx+=DEF.FIT_DELTA)
+                //  セルの作成
+                for (int cy = 0; cy < imgTn.Height; cy += DEF.FIT_DELTA)
                 {
-                    ImageCel imgCel = new ImageCel();
-                    imgCel.pt.X = cx/DEF.FIT_DELTA;
-                    imgCel.pt.Y = cy/DEF.FIT_DELTA;
-                    imgCel.aCol[0] = bmTn.GetPixel(cx+0, cy+0);
-                    imgCel.aCol[1] = bmTn.GetPixel(cx+1, cy+0);
-                    imgCel.aCol[2] = bmTn.GetPixel(cx+0, cy+1);
-                    imgCel.aCol[3] = bmTn.GetPixel(cx+1, cy+1);
+                    for (int cx = 0; cx < imgTn.Width; cx += DEF.FIT_DELTA)
+                    {
+                        ImageCel imgCel = new ImageCel();
+                        imgCel.pt.X = cx / DEF.FIT_DELTA;
+                        imgCel.pt.Y = cy / DEF.FIT_DELTA;
+                        imgCel.aCol[0] = bmTn.GetPixel(cx + 0, cy + 0);
+                        imgCel.aCol[1] = bmTn.GetPixel(cx + 1, cy + 0);
+                        imgCel.aCol[2] = bmTn.GetPixel(cx + 0, cy + 1);
+                        imgCel.aCol[3] = bmTn.GetPixel(cx + 1, cy + 1);
 
-                    ptTmp.Add(imgCel);
+                        ptTmp.Add(imgCel);
+                    }
                 }
             }
 
-            //  ランダマイズ
-            List<ImageCel> aImgCels = new List<ImageCel>(ptTmp.OrderBy(i => Guid.NewGuid()).ToArray());
-
-            return aImgCels;
+            return new List<ImageCel>(ptTmp.OrderBy(i => Guid.NewGuid()).ToArray());
         }
 
 
